@@ -1,0 +1,74 @@
+/* Reset CSS */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: black;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background-color: black;
+}
+
+nav a {
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+    margin-right: 20px;
+    transition: all 0.3s ease;
+}
+
+nav a:hover {
+    color: lightgray;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 5px;
+    background-color: white;
+    color: black;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    background-color: lightgray;
+    color: black;
+}
+
+  /* CSS for the title page */
+  .page-container {
+    padding: 10px;
+    text-align: center;
+  }
+
+  .page-title {
+    font-size: 24px;
+    color: #fff;
+    margin-top: 20px;
+  }
+
+  @media (min-width: 1024px) {
+    .page-title {
+      font-size: 48px;
+    }
+  }
+
+
+
+
+  /* styles.css */
+.sidebar {
+    float: left; /* Align sidebar to the left */
+    height: 100vh; /* Full height sidebar */
+    position: fixed; /* Fixed positioning so sidebar stays in view */
+    overflow-y: auto; /* Allow sidebar content to be scrolled */
+}

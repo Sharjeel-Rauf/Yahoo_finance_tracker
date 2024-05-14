@@ -1,0 +1,10 @@
+{% extends 'base.html' %} 
+{% load static %}
+{% block title %}Welcome | {% endblock %} 
+
+{% block content %}
+<div class="page-container">
+    <h1 class="page-title">Yahoo Finance</h1>
+</div>
+{% include 'finance_app/sidebar.html' %}
+{% endblock %}
