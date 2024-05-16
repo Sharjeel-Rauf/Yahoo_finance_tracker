@@ -6,4 +6,5 @@ urlpatterns = [
     path('signup/', views.signup, name='signup'),
     path('login/', auth_views.LoginView.as_view(template_name='finance_app/login.html'), name='login'),
     path('logout/', views.LogoutView, name = 'logout'),
+    path('process-ticker-symbol/', views.process_ticker_symbol, name='process_ticker_symbol'),
 ]

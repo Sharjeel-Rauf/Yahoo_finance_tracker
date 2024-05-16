@@ -1,9 +1,55 @@
 <!-- sidebar.html -->
-{% extends 'base.html' %} 
 {% load static %}
 {% block content %}
-<div class="sidebar" style="width: 30%; background-color: #262730;">
+<div class="sidebar" style="width: 30%; background-color: #262730; color: white;">
     <!-- Add sidebar content here -->
+
+    <!-- IMAGE -->
     <img src="{% static 'images/gift.jpeg' %}" alt="Image" style="width: 30%;">
+
+    <!-- OPTION STRATEGY ANALYZER -->
+    <h3 style="color: white;">Options Strategy Analyzer</h3>
+    <!-- Input for ticker symbol -->
+    <h3 style="color: white;">Enter Ticker Symbol</h3>
+    <input type="text" id="tickerSymbolInput" value="SPY">
+    <div id="resultsSection">
+        <!-- Results will be displayed here -->
+    </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+<script>
+    // JavaScript code to handle AJAX request for processing ticker symbol input in real-time
+    document.addEventListener('DOMContentLoaded', function () {
+        var tickerInput = document.getElementById('tickerSymbolInput');
+        console.log(tickerInput);
+
+
+            var symbol = tickerInput.value;
+            console.log(symbol);
+
+            // Fetch Read Later posts using jQuery AJAX
+            $.ajax({
+                url: "{% url 'process_ticker_symbol' %}",  // URL to the Django view
+                type: 'GET',
+                data: {
+                    "symbol": symbol,
+                },
+                success: function (response) {
+                    // Update the HTML with the current price
+                    if (response.current_price) {
+                        document.getElementById('resultsSection').innerHTML = `Current price of ${symbol}: $${response.current_price}`;
+                    } else if (response.error) {
+                        document.getElementById('resultsSection').innerHTML = `Error: ${response.error}`;
+                    }
+                },
+                error: function (error) {
+                    console.log('Error fetching input:', error);
+                    document.getElementById('resultsSection').innerHTML = 'Error fetching data';
+                }
+            });
+
+    });
+</script>
 {% endblock %}
