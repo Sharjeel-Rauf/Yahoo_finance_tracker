@@ -1,4 +1,3 @@
-<!-- sidebar.html -->
 {% load static %}
 {% block content %}
 <div class="sidebar" style="width: 30%; background-color: #262730; color: white;">
@@ -9,47 +8,143 @@
 
     <!-- OPTION STRATEGY ANALYZER -->
     <h3 style="color: white;">Options Strategy Analyzer</h3>
+    
     <!-- Input for ticker symbol -->
     <h3 style="color: white;">Enter Ticker Symbol</h3>
     <input type="text" id="tickerSymbolInput" value="SPY">
+
+    <h3>Choose Strategy</h3>
+    <!-- Strategy select -->
+    <select id="strategySelect">
+        <option value="Covered Call">Covered Call</option>
+        <option value="Collar">Collar</option>
+        <option value="Put Sale">Put Sale</option>
+    </select>
+
+    <!-- Add Trade Duration Select -->
+    <h3 style="color: white;">Select Trade Duration</h3>
+    <select id="tradeDurationSelect">
+        <option value="Less than 30 days">Less than 30 days</option>
+        <option value="30-90 days">30-90 days</option>
+        <option value="90+ days">90+ days</option>
+    </select>
+
+    <!-- Add Expiration Date Select -->
+    <h3 style="color: white;">Select Expiry Date</h3>
+    <select id="expiryDateSelect">
+        <!-- Options will be populated dynamically -->
+    </select>
+
+    <button id="fetchDataButton">Fetch Data</button>
+
     <div id="resultsSection">
         <!-- Results will be displayed here -->
+    </div>
+
+    <div id="optionsSection">
+        <!-- Options data will be displayed here -->
     </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 
 <script>
-    // JavaScript code to handle AJAX request for processing ticker symbol input in real-time
-    document.addEventListener('DOMContentLoaded', function () {
-        var tickerInput = document.getElementById('tickerSymbolInput');
-        console.log(tickerInput);
+ document.addEventListener('DOMContentLoaded', function () {
+    var tickerInput = document.getElementById('tickerSymbolInput');
+    var strategySelect = document.getElementById('strategySelect');
+    var tradeDurationSelect = document.getElementById('tradeDurationSelect');
+    var expiryDateSelect = document.getElementById('expiryDateSelect');
+    var fetchDataButton = document.getElementById('fetchDataButton');
 
-
-            var symbol = tickerInput.value;
-            console.log(symbol);
-
-            // Fetch Read Later posts using jQuery AJAX
-            $.ajax({
-                url: "{% url 'process_ticker_symbol' %}",  // URL to the Django view
-                type: 'GET',
-                data: {
-                    "symbol": symbol,
-                },
-                success: function (response) {
-                    // Update the HTML with the current price
-                    if (response.current_price) {
-                        document.getElementById('resultsSection').innerHTML = `Current price of ${symbol}: $${response.current_price}`;
-                    } else if (response.error) {
-                        document.getElementById('resultsSection').innerHTML = `Error: ${response.error}`;
-                    }
-                },
-                error: function (error) {
-                    console.log('Error fetching input:', error);
-                    document.getElementById('resultsSection').innerHTML = 'Error fetching data';
+    function fetchAllInputs(symbol, tradeDuration, expirationDate = null) {
+        $.ajax({
+            url: "{% url 'process_all_inputs' %}",
+            type: 'GET',
+            data: {
+                "symbol": symbol,
+                "trade_duration": tradeDuration,
+                "expiration_date": expirationDate
+            },
+            success: function (response) {
+                if (response.expiration_dates) {
+                    expiryDateSelect.innerHTML = '';
+                    response.expiration_dates.forEach(function (date) {
+                        var option = document.createElement('option');
+                        option.value = date;
+                        option.textContent = date;
+                        expiryDateSelect.appendChild(option);
+                    });
                 }
-            });
+                
+                if (response.current_price) {
+                    document.getElementById('resultsSection').innerHTML = `Current price of ${symbol}: $${response.current_price}`;
+                }
+                
+                if (response.calls_data) {
+                    var callsTable = createTable(response.calls_data);
+                    document.getElementById('optionsSection').innerHTML = `<h3>Calls</h3>${callsTable}`;
+                }
 
-    });
+                if (response.puts_data) {
+                    var putsTable = createTable(response.puts_data);
+                    document.getElementById('optionsSection').innerHTML += `<h3>Puts</h3>${putsTable}`;
+                }
+
+                if (response.error) {
+                    console.log(`Error: ${response.error}`);
+                    document.getElementById('resultsSection').innerHTML = `Error: ${response.error}`;
+                }
+            },
+            error: function (error) {
+                console.log('Error fetching data:', error);
+                document.getElementById('resultsSection').innerHTML = 'Error fetching data';
+            }
+        });
+    }
+
+    function fetchExpirationDates() {
+        var symbol = tickerInput.value;
+        var tradeDuration = tradeDurationSelect.value;
+        fetchAllInputs(symbol, tradeDuration);
+    }
+
+    function fetchFullData() {
+        var symbol = tickerInput.value;
+        var strategy = strategySelect.value;
+        var tradeDuration = tradeDurationSelect.value;
+        var expirationDate = expiryDateSelect.value;
+
+        if (!expirationDate) {
+            alert("Please select an expiration date.");
+            return;
+        }
+
+        fetchAllInputs(symbol, tradeDuration, expirationDate);
+    }
+
+    function createTable(data) {
+        var table = '<table><thead><tr>';
+        for (var key in data[0]) {
+            table += `<th>${key}</th>`;
+        }
+        table += '</tr></thead><tbody>';
+        data.forEach(function (row) {
+            table += '<tr>';
+            for (var key in row) {
+                table += `<td>${row[key]}</td>`;
+            }
+            table += '</tr>';
+        });
+        table += '</tbody></table>';
+        return table;
+    }
+
+    tradeDurationSelect.addEventListener('change', fetchExpirationDates);
+    fetchDataButton.addEventListener('click', fetchFullData);
+
+    // Initial fetch of expiration dates based on default values
+    fetchExpirationDates();
+});
+
 </script>
 {% endblock %}

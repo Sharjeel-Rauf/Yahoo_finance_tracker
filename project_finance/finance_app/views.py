@@ -99,23 +99,62 @@ def front_page_view(request):
     return render(request, 'finance_app/frontpage.html', context)
 
 
-
-def process_ticker_symbol(request):
+def process_all_inputs(request):
     if request.method == 'GET' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         symbol = request.GET.get('symbol')
-        if symbol:
-            try:
-                ticker = yf.Ticker(symbol)
-                current_price = ticker.history(period='1d')['Close'].iloc[-1]
-                return JsonResponse({'current_price': current_price})  # Return results as JSON
-            except IndexError:
-                return JsonResponse({'error': 'Failed to retrieve stock data. Check the ticker symbol and try again.'}, status=400)
-        else:
-            return JsonResponse({'error': 'No ticker symbol provided'}, status=400)
+        trade_duration = request.GET.get('trade_duration')
+        expiration_date = request.GET.get('expiration_date')
+        print(trade_duration)
+        strategy = request.GET.get('strategy')
+
+        if not symbol or not trade_duration:
+            return JsonResponse({'error': 'No symbol or trade duration provided'}, status=400)
+
+        try:
+            exps, all_options = options_chain(symbol)
+            today = pd.Timestamp.now().normalize()
+
+            print("hello1")
+
+            if trade_duration == "Less than 30 days":
+                all_options = all_options[pd.to_datetime(all_options['Expiration Date']) <= today + pd.DateOffset(days=30)]
+                print("hello2")
+            elif trade_duration == "30-90 days":
+                all_options = all_options[(today + pd.DateOffset(days=30) < pd.to_datetime(all_options['Expiration Date'])) & (pd.to_datetime(all_options['Expiration Date']) <= today + pd.DateOffset(days=90))]
+            else:  # "90+ days"
+                all_options = all_options[pd.to_datetime(all_options['Expiration Date']) > today + pd.DateOffset(days=90)]
+
+            if all_options.empty:
+                return JsonResponse({'error': 'No options data available for the selected duration.'}, status=400)
+
+            
+            expiration_dates = all_options['Expiration Date'].unique().tolist()
+            
+
+            if expiration_date:
+                selected_options = all_options[all_options['Expiration Date'] == expiration_date]
+
+                selected_calls = selected_options[selected_options['Contract Name'].apply(lambda x: re.search(r'[CP]\d+$', x) and 'C' in x)]
+                selected_puts = selected_options[selected_options['Contract Name'].apply(lambda x: re.search(r'[CP]\d+$', x) and 'P' in x)]
+
+                calls_data = selected_calls.to_dict(orient='records')
+                puts_data = selected_puts.to_dict(orient='records')
+
+                current_price = yf.Ticker(symbol).history(period='1d')['Close'].iloc[-1]
+
+                return JsonResponse({
+                    'expiration_dates': expiration_dates,
+                    'current_price': current_price,
+                    'calls_data': calls_data,
+                    'puts_data': puts_data
+                })
+            else:
+                return JsonResponse({'expiration_dates': expiration_dates})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
     return JsonResponse({'error': 'Invalid request'}, status=400)
-
-
-
 
 
 
