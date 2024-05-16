@@ -56,101 +56,105 @@
 
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var tickerInput = document.getElementById('tickerSymbolInput');
-        var strategySelect = document.getElementById('strategySelect');
-        var tradeDurationSelect = document.getElementById('tradeDurationSelect');
-        var expiryDateSelect = document.getElementById('expiryDateSelect');
-        var isInitialLoad = true; // Flag to prevent unnecessary AJAX calls
-    
-        function fetchAllInputs(symbol, tradeDuration, expirationDate = null) {
-            $.ajax({
-                url: "{% url 'process_all_inputs' %}",
-                type: 'GET',
-                data: {
-                    "symbol": symbol,
-                    "trade_duration": tradeDuration,
-                    "expiration_date": expirationDate
-                },
-                success: function (response) {
-                    if (response.expiration_dates) {
-                        expiryDateSelect.innerHTML = '';
-                        response.expiration_dates.forEach(function (date, index) {
-                            var option = document.createElement('option');
-                            option.value = date;
-                            option.textContent = date;
-                            expiryDateSelect.appendChild(option);
-                        });
-    
-                        if (isInitialLoad) {
-                            isInitialLoad = false; // Reset flag after initial load
-                            // Trigger change event to load data for the first expiration date
-                            expiryDateSelect.dispatchEvent(new Event('change'));
-                        }
+document.addEventListener('DOMContentLoaded', function () {
+    var tickerInput = document.getElementById('tickerSymbolInput');
+    var strategySelect = document.getElementById('strategySelect');
+    var tradeDurationSelect = document.getElementById('tradeDurationSelect');
+    var expiryDateSelect = document.getElementById('expiryDateSelect');
+    var isInitialLoad = true; // Flag to prevent unnecessary AJAX calls
+
+    function fetchAllInputs(symbol, tradeDuration, expirationDate = null) {
+        $.ajax({
+            url: "{% url 'process_all_inputs' %}",
+            type: 'GET',
+            data: {
+                "symbol": symbol,
+                "trade_duration": tradeDuration,
+                "expiration_date": expirationDate
+            },
+            success: function (response) {
+                if (response.expiration_dates) {
+                    expiryDateSelect.innerHTML = '';
+                    response.expiration_dates.forEach(function (date, index) {
+                        var option = document.createElement('option');
+                        option.value = date;
+                        option.textContent = date;
+                        expiryDateSelect.appendChild(option);
+                    });
+
+                    if (isInitialLoad) {
+                        isInitialLoad = false; // Reset flag after initial load
+                        // Trigger change event to load data for the first expiration date
+                        expiryDateSelect.dispatchEvent(new Event('change'));
                     }
-    
-                    if (response.current_price) {
-                        var formattedPrice = parseFloat(response.current_price).toFixed(2);
-                        document.getElementById('resultsSection').innerHTML = `Current price of ${symbol}: $${formattedPrice}`;
-                    }
-    
-                    if (response.calls_data) {
-                        var callsTable = createTable(response.calls_data);
-                        document.getElementById('callsTableContainer').innerHTML = callsTable;
-                    }
-    
-                    if (response.puts_data) {
-                        var putsTable = createTable(response.puts_data);
-                        document.getElementById('putsTableContainer').innerHTML = putsTable;
-                    }
-    
-                    if (response.error) {
-                        console.log(`Error: ${response.error}`);
-                        document.getElementById('resultsSection').innerHTML = `Error: ${response.error}`;
-                    }
-                },
-                error: function (error) {
-                    console.log('Error fetching data:', error);
-                    document.getElementById('resultsSection').innerHTML = 'Error fetching data';
                 }
-            });
-        }
-    
-        function fetchExpirationDates() {
-            var symbol = tickerInput.value;
-            var tradeDuration = tradeDurationSelect.value;
-            fetchAllInputs(symbol, tradeDuration);
-        }
-    
-        function createTable(data) {
-            var table = '<table><thead><tr>';
-            for (var key in data[0]) {
-                table += `<th>${key}</th>`;
+
+                if (response.current_price) {
+                    var formattedPrice = parseFloat(response.current_price).toFixed(2);
+                    document.getElementById('resultsSection').innerHTML = `Current price of ${symbol}: $${formattedPrice}`;
+                }
+
+                if (response.calls_data) {
+                    var callsTable = createTable(response.calls_data);
+                    document.getElementById('callsTableContainer').innerHTML = callsTable;
+                }
+
+                if (response.puts_data) {
+                    var putsTable = createTable(response.puts_data);
+                    document.getElementById('putsTableContainer').innerHTML = putsTable;
+                }
+
+                if (response.error) {
+                    console.log(`Error: ${response.error}`);
+                    document.getElementById('resultsSection').innerHTML = `Error: ${response.error}`;
+                }
+            },
+            error: function (error) {
+                console.log('Error fetching data:', error);
+                document.getElementById('resultsSection').innerHTML = 'Error fetching data';
             }
-            table += '</tr></thead><tbody>';
-            data.forEach(function (row) {
-                table += '<tr>';
-                for (var key in row) {
-                    table += `<td>${row[key]}</td>`;
-                }
-                table += '</tr>';
-            });
-            table += '</tbody></table>';
-            return table;
-        }
-    
-        // Fetch data on page load
-        fetchExpirationDates();
-    
-        // Fetch data when any of the inputs change
-        tickerInput.addEventListener('input', fetchExpirationDates); // Change 'change' to 'input'
-        tradeDurationSelect.addEventListener('change', fetchExpirationDates);
-        expiryDateSelect.addEventListener('change', function () {
-            var symbol = tickerInput.value;
-            var tradeDuration = tradeDurationSelect.value;
-            var expirationDate = expiryDateSelect.value;
-            fetchAllInputs(symbol, tradeDuration, expirationDate);
         });
+    }
+
+    function fetchExpirationDates() {
+        var symbol = tickerInput.value;
+        var tradeDuration = tradeDurationSelect.value;
+        fetchAllInputs(symbol, tradeDuration);
+    }
+
+    function createTable(data) {
+        var table = '<table><thead><tr>';
+        for (var key in data[0]) {
+            table += `<th>${key}</th>`;
+        }
+        table += '</tr></thead><tbody>';
+        data.forEach(function (row) {
+            table += '<tr>';
+            for (var key in row) {
+                table += `<td>${row[key]}</td>`;
+            }
+            table += '</tr>';
+        });
+        table += '</tbody></table>';
+        return table;
+    }
+
+    // Fetch data on page load
+    fetchExpirationDates();
+
+    // Fetch data when any of the inputs change
+    tickerInput.addEventListener('input', function () {
+        fetchExpirationDates();
     });
-    </script>
+    tradeDurationSelect.addEventListener('change', function () {
+        fetchExpirationDates();
+    });
+    expiryDateSelect.addEventListener('change', function () {
+        var symbol = tickerInput.value;
+        var tradeDuration = tradeDurationSelect.value;
+        var expirationDate = expiryDateSelect.value;
+        fetchAllInputs(symbol, tradeDuration, expirationDate);
+    });
+});
+</script>
 {% endblock %}
