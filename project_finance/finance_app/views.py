@@ -37,10 +37,11 @@ def front_page_view(request):
 def process_all_inputs(request):
     if request.method == 'GET' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         symbol = request.GET.get('symbol')
+        strategy = request.GET.get('strategy')
+        print("strategy", strategy)
         trade_duration = request.GET.get('trade_duration')
         expiration_date = request.GET.get('expiration_date')
         print(trade_duration)
-        strategy = request.GET.get('strategy')
 
         if not symbol or not trade_duration:
             return JsonResponse({'error': 'No symbol or trade duration provided'}, status=400)
@@ -77,11 +78,43 @@ def process_all_inputs(request):
 
                 current_price = yf.Ticker(symbol).history(period='1d')['Close'].iloc[-1]
 
+                options_data = []
+                # Determine the number of option legs based on the strategy
+                if strategy == 'Covered Call':
+                    option_types = ['Call', 'Stock']
+                    print(option_types)
+                elif strategy == 'Collar':
+                    option_types = ['Stock', 'Put', 'Call']
+                elif strategy == 'Put Sale':
+                    option_types = ['Put']
+
+                # Define the dynamic labeling and inputs based on the strategy
+                strategy_details = {
+                    'Covered Call': [('Stock', 'Number of Shares', 'Average Share Cost'), ('Call', 'Call Strike Price')],
+                    'Collar': [('Stock', 'Number of Shares', 'Average Share Cost'), ('Put', 'Put Strike Price'),
+                            ('Call', 'Call Strike Price')],
+                    'Put Sale': [('Put', 'Put Strike Price')]
+                }
+
+                # Fetch the details specific to the selected strategy
+                option_details = strategy_details[strategy]
+
+                # Clear previous inputs to avoid duplication
+                for key in st.session_state.keys():
+                    if 'shares_' in key or 'premium_' in key or 'quantity_' in key or 'share_cost_' in key or 'Strike_' in key:
+                        del st.session_state[key]
+
+                # Dynamically generate inputs based on strategy selection
+                for i, (option_type, *labels) in enumerate(option_details):
+                    st.sidebar.subheader(f"Option Leg {i + 1}")
+            
+
                 return JsonResponse({
                     'expiration_dates': expiration_dates,
                     'current_price': current_price,
                     'calls_data': calls_data,
-                    'puts_data': puts_data
+                    'puts_data': puts_data,
+                    'option_details': option_details,
                 })
             else:
                 return JsonResponse({'expiration_dates': expiration_dates})

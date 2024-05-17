@@ -63,11 +63,12 @@ document.addEventListener('DOMContentLoaded', function () {
     var expiryDateSelect = document.getElementById('expiryDateSelect');
     var isInitialLoad = true; // Flag to prevent unnecessary AJAX calls
 
-    function fetchAllInputs(symbol, tradeDuration, expirationDate = null) {
+    function fetchAllInputs(symbol, tradeDuration, expirationDate = null, strategy) {
         $.ajax({
             url: "{% url 'process_all_inputs' %}",
             type: 'GET',
             data: {
+                "strategy": strategy,
                 "symbol": symbol,
                 "trade_duration": tradeDuration,
                 "expiration_date": expirationDate
@@ -102,6 +103,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (response.puts_data) {
                     var putsTable = createTable(response.puts_data);
                     document.getElementById('putsTableContainer').innerHTML = putsTable;
+                }
+
+                if (response.option_details) {
+                    var optionLegsContainer = document.getElementById('optionLegsContainer');
+                    optionLegsContainer.innerHTML = '';
+
+                    response.option_details.forEach((leg, i) => {
+                        var optionLeg = document.createElement('div');
+                        optionLeg.className = 'option-leg';
+                        optionLeg.innerHTML = `<h4>Option Leg ${i + 1}</h4>`;
+                        optionLegsContainer.appendChild(optionLeg);
+                    });
                 }
 
                 if (response.error) {
@@ -153,7 +166,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var symbol = tickerInput.value;
         var tradeDuration = tradeDurationSelect.value;
         var expirationDate = expiryDateSelect.value;
-        fetchAllInputs(symbol, tradeDuration, expirationDate);
+        var strategy = strategySelect.value;
+        fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
     });
 });
 </script>
