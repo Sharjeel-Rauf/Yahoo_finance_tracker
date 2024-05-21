@@ -22,26 +22,26 @@ from .utils import options_chain, generate_summary
 
 from django.http import JsonResponse
 
+import json
+
 # view of the landing page
 def front_page_view(request):
     context = {}
     context['page_title'] = 'Comprehensive Options Strategy Analyzer'
 
-   
-
-
-   
     return render(request, 'finance_app/frontpage.html', context)
 
+
+        
 
 def process_all_inputs(request):
     if request.method == 'GET' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         symbol = request.GET.get('symbol')
         strategy = request.GET.get('strategy')
-        print("strategy", strategy)
         trade_duration = request.GET.get('trade_duration')
         expiration_date = request.GET.get('expiration_date')
-        print(trade_duration)
+        
+        print(f"Received parameters: symbol={symbol}, strategy={strategy}, trade_duration={trade_duration}, expiration_date={expiration_date}")
 
         if not symbol or not trade_duration:
             return JsonResponse({'error': 'No symbol or trade duration provided'}, status=400)
@@ -50,22 +50,24 @@ def process_all_inputs(request):
             exps, all_options = options_chain(symbol)
             today = pd.Timestamp.now().normalize()
 
-            print("hello1")
+            print("Options chain fetched successfully")
+            print(f"Options: {all_options.head()}")
 
             if trade_duration == "Less than 30 days":
                 all_options = all_options[pd.to_datetime(all_options['Expiration Date']) <= today + pd.DateOffset(days=30)]
-                print("hello2")
+                print("Filtered options for Less than 30 days")
             elif trade_duration == "30-90 days":
                 all_options = all_options[(today + pd.DateOffset(days=30) < pd.to_datetime(all_options['Expiration Date'])) & (pd.to_datetime(all_options['Expiration Date']) <= today + pd.DateOffset(days=90))]
+                print("Filtered options for 30-90 days")
             else:  # "90+ days"
                 all_options = all_options[pd.to_datetime(all_options['Expiration Date']) > today + pd.DateOffset(days=90)]
+                print("Filtered options for 90+ days")
 
             if all_options.empty:
                 return JsonResponse({'error': 'No options data available for the selected duration.'}, status=400)
 
-            
             expiration_dates = all_options['Expiration Date'].unique().tolist()
-            
+            print(f"Expiration dates: {expiration_dates}")
 
             if expiration_date:
                 selected_options = all_options[all_options['Expiration Date'] == expiration_date]
@@ -73,20 +75,20 @@ def process_all_inputs(request):
                 selected_calls = selected_options[selected_options['Contract Name'].apply(lambda x: re.search(r'[CP]\d+$', x) and 'C' in x)]
                 selected_puts = selected_options[selected_options['Contract Name'].apply(lambda x: re.search(r'[CP]\d+$', x) and 'P' in x)]
 
-                calls_data = selected_calls.to_dict(orient='records')
-                puts_data = selected_puts.to_dict(orient='records')
+                 # Replace NaN and inf values
+                calls_data = selected_calls.replace([np.inf, -np.inf], np.nan).fillna(0)
+
+                calls_data_dict = calls_data.to_dict(orient='records')
+
+                 # Replace NaN and inf values
+                puts_data = selected_puts.replace([np.inf, -np.inf], np.nan).fillna(0)
+
+                puts_data_dict = puts_data.to_dict(orient='records')
+
+
 
                 current_price = yf.Ticker(symbol).history(period='1d')['Close'].iloc[-1]
-
-                options_data = []
-                # Determine the number of option legs based on the strategy
-                if strategy == 'Covered Call':
-                    option_types = ['Call', 'Stock']
-                    print(option_types)
-                elif strategy == 'Collar':
-                    option_types = ['Stock', 'Put', 'Call']
-                elif strategy == 'Put Sale':
-                    option_types = ['Put']
+                print(f"Current price: {current_price}")
 
                 # Define the dynamic labeling and inputs based on the strategy
                 strategy_details = {
@@ -96,33 +98,40 @@ def process_all_inputs(request):
                     'Put Sale': [('Put', 'Put Strike Price')]
                 }
 
-                # Fetch the details specific to the selected strategy
                 option_details = strategy_details[strategy]
-
-                # Clear previous inputs to avoid duplication
-                for key in st.session_state.keys():
-                    if 'shares_' in key or 'premium_' in key or 'quantity_' in key or 'share_cost_' in key or 'Strike_' in key:
-                        del st.session_state[key]
-
-                # Dynamically generate inputs based on strategy selection
+                option_last_prices = []
                 for i, (option_type, *labels) in enumerate(option_details):
-                    st.sidebar.subheader(f"Option Leg {i + 1}")
-            
+                    if option_type in ['Call', 'Put']:
+                        option_data = selected_calls if option_type == 'Call' else selected_puts
+                        available_strikes = option_data['Strike'].unique()
+                        last_price_data = {strike: option_data[option_data['Strike'] == strike]['Last Price'].iloc[0] if not option_data[option_data['Strike'] == strike].empty else 0.0 for strike in available_strikes}
+                        option_last_prices.append(last_price_data)
+                    else:
+                        option_last_prices.append(None)
+
+                print("Option details and last prices fetched successfully")
+                print(f"Option details: {option_details}")
+                print(f"Option last prices: {option_last_prices}")
 
                 return JsonResponse({
                     'expiration_dates': expiration_dates,
                     'current_price': current_price,
-                    'calls_data': calls_data,
-                    'puts_data': puts_data,
+                    'calls_data': calls_data_dict,
+                    'puts_data': puts_data_dict,
                     'option_details': option_details,
+                    'option_last_prices': option_last_prices,
                 })
             else:
+                print("No specific expiration date selected, returning expiration dates")
                 return JsonResponse({'expiration_dates': expiration_dates})
 
         except Exception as e:
+            print(f"Error during data fetching: {str(e)}")
             return JsonResponse({'error': str(e)}, status=400)
 
+    print("Invalid request")
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
 
 
 

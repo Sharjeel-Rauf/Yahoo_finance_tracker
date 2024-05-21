@@ -61,9 +61,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var strategySelect = document.getElementById('strategySelect');
     var tradeDurationSelect = document.getElementById('tradeDurationSelect');
     var expiryDateSelect = document.getElementById('expiryDateSelect');
-    var isInitialLoad = true; // Flag to prevent unnecessary AJAX calls
+    var isInitialLoad = true;
 
-    function fetchAllInputs(symbol, tradeDuration, expirationDate = null, strategy) {
+    function fetchAllInputs(symbol, tradeDuration, expirationDate = null, strategy = 'Covered Call') {
+        console.log(`Fetching data with params: symbol=${symbol}, tradeDuration=${tradeDuration}, expirationDate=${expirationDate}, strategy=${strategy}`);
         $.ajax({
             url: "{% url 'process_all_inputs' %}",
             type: 'GET',
@@ -74,9 +75,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 "expiration_date": expirationDate
             },
             success: function (response) {
+                console.log("AJAX response:", response);
+
                 if (response.expiration_dates) {
                     expiryDateSelect.innerHTML = '';
-                    response.expiration_dates.forEach(function (date, index) {
+                    response.expiration_dates.forEach(function (date) {
                         var option = document.createElement('option');
                         option.value = date;
                         option.textContent = date;
@@ -84,8 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
 
                     if (isInitialLoad) {
-                        isInitialLoad = false; // Reset flag after initial load
-                        // Trigger change event to load data for the first expiration date
+                        isInitialLoad = false;
                         expiryDateSelect.dispatchEvent(new Event('change'));
                     }
                 }
@@ -113,8 +115,38 @@ document.addEventListener('DOMContentLoaded', function () {
                         var optionLeg = document.createElement('div');
                         optionLeg.className = 'option-leg';
                         optionLeg.innerHTML = `<h4>Option Leg ${i + 1}</h4>`;
+
+                        if (leg[0] === 'Stock') {
+                            optionLeg.innerHTML += `
+                                <label>${leg[1]}</label>
+                                <input type="number" min="1" max="1000" value="100" id="shares_${i}" class="option-input" /><br>
+                                <label>${leg[2]}</label>
+                                <input type="number" min="0.01" max="${10 * response.current_price}" value="${response.current_price}" step="0.01" id="share_cost_${i}" class="option-input" />
+                            `;
+                        } else {
+                            var availableStrikes = leg[0] === 'Call' ? response.calls_data.map(call => call.Strike) : response.puts_data.map(put => put.Strike);
+                            var options = availableStrikes.map(strike => `<option value="${strike}">${strike}</option>`).join('');
+                            var premiumValues = response.option_last_prices[i];
+
+                            var defaultStrikeValue = availableStrikes[0];
+                            var defaultPremiumValue = premiumValues[defaultStrikeValue] !== undefined ? premiumValues[defaultStrikeValue] : 0;
+
+                            optionLeg.innerHTML += `
+                                <label>${leg[1]}</label>
+                                <select id="Strike_${i}" data-index="${i}" class="option-input" onchange="updatePremium(${i}, this.value, ${JSON.stringify(premiumValues)})">
+                                    ${options}
+                                </select><br>
+                                <label>Premium</label>
+                                <input type="number" min="0.0" max="1000.0" value="${defaultPremiumValue}" step="0.1" id="premium_${i}" class="option-input" /><br>
+                                <label>Quantity</label>
+                                <input type="number" min="1" max="100" value="1" id="quantity_${i}" class="option-input" />
+                            `;
+                        }
+
                         optionLegsContainer.appendChild(optionLeg);
                     });
+
+                    attachInputListeners();
                 }
 
                 if (response.error) {
@@ -129,10 +161,26 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function fetchExpirationDates() {
-        var symbol = tickerInput.value;
-        var tradeDuration = tradeDurationSelect.value;
-        fetchAllInputs(symbol, tradeDuration);
+    function updatePremium(index, strikeValue, premiumValues) {
+        var premiumInput = document.getElementById(`premium_${index}`);
+        if (premiumValues && premiumValues[strikeValue] !== undefined) {
+            premiumInput.value = premiumValues[strikeValue];
+        } else {
+            premiumInput.value = '';
+        }
+    }
+
+    function attachInputListeners() {
+        var inputs = document.querySelectorAll('.option-input');
+        inputs.forEach(function(input) {
+            input.addEventListener('change', function() {
+                var symbol = tickerInput.value;
+                var tradeDuration = tradeDurationSelect.value;
+                var expirationDate = expiryDateSelect.value;
+                var strategy = strategySelect.value;
+                fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
+            });
+        });
     }
 
     function createTable(data) {
@@ -152,6 +200,13 @@ document.addEventListener('DOMContentLoaded', function () {
         return table;
     }
 
+    function fetchExpirationDates() {
+        var symbol = tickerInput.value;
+        var tradeDuration = tradeDurationSelect.value;
+        var strategy = strategySelect.value;
+        fetchAllInputs(symbol, tradeDuration, null, strategy);
+    }
+
     // Fetch data on page load
     fetchExpirationDates();
 
@@ -169,6 +224,19 @@ document.addEventListener('DOMContentLoaded', function () {
         var strategy = strategySelect.value;
         fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
     });
+    strategySelect.addEventListener('change', function () {
+        var symbol = tickerInput.value;
+        var tradeDuration = tradeDurationSelect.value;
+        var expirationDate = expiryDateSelect.value;
+        var strategy = strategySelect.value;
+        fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
+    });
 });
+
+
 </script>
+
+
+
+
 {% endblock %}
