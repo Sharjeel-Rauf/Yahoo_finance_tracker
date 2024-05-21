@@ -40,6 +40,11 @@ def process_all_inputs(request):
         strategy = request.GET.get('strategy')
         trade_duration = request.GET.get('trade_duration')
         expiration_date = request.GET.get('expiration_date')
+        number_of_shares = request.GET.get('shares')
+        average_share_cost = request.GET.get('share_cost')
+        print("no of shares:", number_of_shares)
+        print("Average share cost:", average_share_cost)
+
         
         print(f"Received parameters: symbol={symbol}, strategy={strategy}, trade_duration={trade_duration}, expiration_date={expiration_date}")
 
@@ -50,8 +55,6 @@ def process_all_inputs(request):
             exps, all_options = options_chain(symbol)
             today = pd.Timestamp.now().normalize()
 
-            print("Options chain fetched successfully")
-            print(f"Options: {all_options.head()}")
 
             if trade_duration == "Less than 30 days":
                 all_options = all_options[pd.to_datetime(all_options['Expiration Date']) <= today + pd.DateOffset(days=30)]
@@ -67,7 +70,7 @@ def process_all_inputs(request):
                 return JsonResponse({'error': 'No options data available for the selected duration.'}, status=400)
 
             expiration_dates = all_options['Expiration Date'].unique().tolist()
-            print(f"Expiration dates: {expiration_dates}")
+
 
             if expiration_date:
                 selected_options = all_options[all_options['Expiration Date'] == expiration_date]
@@ -90,6 +93,15 @@ def process_all_inputs(request):
                 current_price = yf.Ticker(symbol).history(period='1d')['Close'].iloc[-1]
                 print(f"Current price: {current_price}")
 
+                options_data = []
+                # Determine the number of option legs based on the strategy
+                if strategy == 'Covered Call':
+                    option_types = ['Call', 'Stock']
+                elif strategy == 'Collar':
+                    option_types = ['Stock', 'Put', 'Call']
+                elif strategy == 'Put Sale':
+                    option_types = ['Put']
+
                 # Define the dynamic labeling and inputs based on the strategy
                 strategy_details = {
                     'Covered Call': [('Stock', 'Number of Shares', 'Average Share Cost'), ('Call', 'Call Strike Price')],
@@ -98,7 +110,12 @@ def process_all_inputs(request):
                     'Put Sale': [('Put', 'Put Strike Price')]
                 }
 
+
+
                 option_details = strategy_details[strategy]
+
+
+
                 option_last_prices = []
                 for i, (option_type, *labels) in enumerate(option_details):
                     if option_type in ['Call', 'Put']:
@@ -109,10 +126,7 @@ def process_all_inputs(request):
                     else:
                         option_last_prices.append(None)
 
-                print("Option details and last prices fetched successfully")
-                print(f"Option details: {option_details}")
-                print(f"Option last prices: {option_last_prices}")
-
+               
                 return JsonResponse({
                     'expiration_dates': expiration_dates,
                     'current_price': current_price,

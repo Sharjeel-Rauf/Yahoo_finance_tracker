@@ -31,28 +31,7 @@
     </div>
 </div>
 
-<style>
-    .table-container {
-        width: 100%;
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid #ccc;
-        margin-bottom: 20px;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        color: white;
-    }
-    th, td {
-        padding: 8px;
-        text-align: left;
-        border-bottom: 1px solid #ddd;
-    }
-    th {
-        background-color: #4CAF50;
-    }
-</style>
+
 
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 <script>
@@ -62,9 +41,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var tradeDurationSelect = document.getElementById('tradeDurationSelect');
     var expiryDateSelect = document.getElementById('expiryDateSelect');
     var isInitialLoad = true;
+    var sharesValue = 100; // Default value for shares
+    var shareCostValue; // Variable to store share cost value
 
     function fetchAllInputs(symbol, tradeDuration, expirationDate = null, strategy = 'Covered Call') {
-        console.log(`Fetching data with params: symbol=${symbol}, tradeDuration=${tradeDuration}, expirationDate=${expirationDate}, strategy=${strategy}`);
         $.ajax({
             url: "{% url 'process_all_inputs' %}",
             type: 'GET',
@@ -72,10 +52,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 "strategy": strategy,
                 "symbol": symbol,
                 "trade_duration": tradeDuration,
-                "expiration_date": expirationDate
+                "expiration_date": expirationDate,
+                "shares": sharesValue, // Include shares value in the AJAX request
+                "share_cost": shareCostValue // Include share cost value in the AJAX request
             },
             success: function (response) {
-                console.log("AJAX response:", response);
 
                 if (response.expiration_dates) {
                     expiryDateSelect.innerHTML = '';
@@ -106,6 +87,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     var putsTable = createTable(response.puts_data);
                     document.getElementById('putsTableContainer').innerHTML = putsTable;
                 }
+                if (response.current_price !== undefined) {
+                        shareCostValue = parseFloat(response.current_price);
+                    }
 
                 if (response.option_details) {
                     var optionLegsContainer = document.getElementById('optionLegsContainer');
@@ -153,6 +137,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log(`Error: ${response.error}`);
                     document.getElementById('resultsSection').innerHTML = `Error: ${response.error}`;
                 }
+                // Debug: Log the average share cost value
+                console.log("Average share cost:", shareCostValue);
             },
             error: function (error) {
                 console.log('Error fetching data:', error);
@@ -171,17 +157,33 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function attachInputListeners() {
-        var inputs = document.querySelectorAll('.option-input');
-        inputs.forEach(function(input) {
-            input.addEventListener('change', function() {
-                var symbol = tickerInput.value;
-                var tradeDuration = tradeDurationSelect.value;
-                var expirationDate = expiryDateSelect.value;
-                var strategy = strategySelect.value;
-                fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
-            });
+    var inputs = document.querySelectorAll('.option-input');
+    inputs.forEach(function(input) {
+        input.addEventListener('change', function() {
+            var symbol = tickerInput.value;
+            var tradeDuration = tradeDurationSelect.value;
+            var expirationDate = expiryDateSelect.value;
+            var strategy = strategySelect.value;
+
+            // Update sharesValue if the input field is for shares
+            if (this.id.startsWith('shares')) {
+                sharesValue = parseInt(this.value); // Parse the value as an integer
+            }
+
+            // Update shareCostValue if the input field is for share cost
+            if (this.id.startsWith('share_cost')) {
+                shareCostValue = parseFloat(this.value); // Parse the value as a float
+            }
+
+            // Fetch data with updated values
+            fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
+
+            // Debug: Log the current values of sharesValue and shareCostValue
+            console.log("Shares value:", sharesValue);
+            console.log("Average share cost:", shareCostValue);
         });
-    }
+    });
+}
 
     function createTable(data) {
         var table = '<table><thead><tr>';
@@ -232,9 +234,30 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
     });
 });
-
-
 </script>
+
+<style>
+    .table-container {
+        width: 100%;
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        margin-bottom: 20px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        color: white;
+    }
+    th, td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    th {
+        background-color: #4CAF50;
+    }
+</style>
 
 
 
