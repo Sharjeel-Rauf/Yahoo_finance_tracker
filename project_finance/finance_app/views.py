@@ -42,8 +42,10 @@ def process_all_inputs(request):
         expiration_date = request.GET.get('expiration_date')
         number_of_shares = request.GET.get('shares')
         average_share_cost = request.GET.get('share_cost')
-        print("no of shares:", number_of_shares)
-        print("Average share cost:", average_share_cost)
+        selected_strike = request.GET.get('selected_strike')
+        print("number_of_shares:", number_of_shares)
+        print("average_share_cost:", average_share_cost)
+        print("SELECTED STRIKE:", selected_strike)
 
         
         print(f"Received parameters: symbol={symbol}, strategy={strategy}, trade_duration={trade_duration}, expiration_date={expiration_date}")
@@ -116,25 +118,54 @@ def process_all_inputs(request):
 
 
 
-                option_last_prices = []
                 for i, (option_type, *labels) in enumerate(option_details):
                     if option_type in ['Call', 'Put']:
                         option_data = selected_calls if option_type == 'Call' else selected_puts
                         available_strikes = option_data['Strike'].unique()
                         last_price_data = {strike: option_data[option_data['Strike'] == strike]['Last Price'].iloc[0] if not option_data[option_data['Strike'] == strike].empty else 0.0 for strike in available_strikes}
-                        option_last_prices.append(last_price_data)
+                        options_data.append(last_price_data)
                     else:
-                        option_last_prices.append(None)
+                        options_data.append(None)
 
-               
+                    #                 # Dynamically generate inputs based on strategy selection
+                    # for i, (option_type, *labels) in enumerate(option_details):
+                   
+
+                    #     if option_type == 'Stock':
+                    #         number_of_shares = number_of_shares
+                    #         average_share_cost = average_share_cost
+                    #         options_data.append((option_type, number_of_shares, average_share_cost))
+                    #     else:
+                    #         available_strikes = selected_calls['Strike'].unique() if option_type == 'Call' else selected_puts['Strike'].unique()
+                    #         strike = st.sidebar.selectbox(labels[0], available_strikes, key=f"Strike_{i}")
+
+                    #         # Retrieve the last price for the selected strike price
+                    #         if strike:
+                    #             option_data = selected_calls if option_type == 'Call' else selected_puts
+                    #             last_price = option_data[option_data['Strike'] == strike]['Last Price'].iloc[0] if not option_data[option_data['Strike'] == strike].empty else 0.0
+
+                    #             premium = st.sidebar.number_input("Premium", min_value=0.0, max_value=1000.0, value=last_price, step=0.1, key=f"premium_{i}")
+                    #             quantity = st.sidebar.number_input("Quantity", min_value=1, max_value=100, value=1, key=f"quantity_{i}")
+                    #             options_data.append((option_type, strike, premium, quantity))
+
+    
+                context = {
+                    'option_details': option_details,
+                    'multiplied_current_price': 10 * current_price,
+                    'current_price': current_price,
+                }
+
+                
                 return JsonResponse({
                     'expiration_dates': expiration_dates,
                     'current_price': current_price,
                     'calls_data': calls_data_dict,
                     'puts_data': puts_data_dict,
                     'option_details': option_details,
-                    'option_last_prices': option_last_prices,
+                    'options_data': options_data,
                 })
+               
+                
             else:
                 print("No specific expiration date selected, returning expiration dates")
                 return JsonResponse({'expiration_dates': expiration_dates})
@@ -142,9 +173,9 @@ def process_all_inputs(request):
         except Exception as e:
             print(f"Error during data fetching: {str(e)}")
             return JsonResponse({'error': str(e)}, status=400)
+    else:
+        return render(request, 'options_template.html', context)
 
-    print("Invalid request")
-    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 
 

@@ -43,7 +43,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var isInitialLoad = true;
     var sharesValue = 100; // Default value for shares
     var shareCostValue; // Variable to store share cost value
+    var selectedStrike = null; // Initialize selectedStrike to null
 
+    // Function to fetch all inputs with current parameters
     function fetchAllInputs(symbol, tradeDuration, expirationDate = null, strategy = 'Covered Call') {
         $.ajax({
             url: "{% url 'process_all_inputs' %}",
@@ -54,10 +56,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 "trade_duration": tradeDuration,
                 "expiration_date": expirationDate,
                 "shares": sharesValue, // Include shares value in the AJAX request
-                "share_cost": shareCostValue // Include share cost value in the AJAX request
+                "share_cost": shareCostValue, // Include share cost value in the AJAX request
+                "selected_strike": selectedStrike // Include selected strike prices in the AJAX request
             },
             success: function (response) {
-
+                // Handle expiration dates
                 if (response.expiration_dates) {
                     expiryDateSelect.innerHTML = '';
                     response.expiration_dates.forEach(function (date) {
@@ -73,27 +76,29 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
 
+                // Handle current price
                 if (response.current_price) {
                     var formattedPrice = parseFloat(response.current_price).toFixed(2);
                     document.getElementById('resultsSection').innerHTML = `Current price of ${symbol}: $${formattedPrice}`;
                 }
 
+                // Handle calls data
                 if (response.calls_data) {
                     var callsTable = createTable(response.calls_data);
                     document.getElementById('callsTableContainer').innerHTML = callsTable;
                 }
 
+                // Handle puts data
                 if (response.puts_data) {
                     var putsTable = createTable(response.puts_data);
                     document.getElementById('putsTableContainer').innerHTML = putsTable;
                 }
-                if (response.current_price !== undefined) {
-                        shareCostValue = parseFloat(response.current_price);
-                    }
 
+                // Handle option details
                 if (response.option_details) {
                     var optionLegsContainer = document.getElementById('optionLegsContainer');
                     optionLegsContainer.innerHTML = '';
+                    var optionsData = [];
 
                     response.option_details.forEach((leg, i) => {
                         var optionLeg = document.createElement('div');
@@ -108,16 +113,23 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <input type="number" min="0.01" max="${10 * response.current_price}" value="${response.current_price}" step="0.01" id="share_cost_${i}" class="option-input" />
                             `;
                         } else {
-                            var availableStrikes = leg[0] === 'Call' ? response.calls_data.map(call => call.Strike) : response.puts_data.map(put => put.Strike);
-                            var options = availableStrikes.map(strike => `<option value="${strike}">${strike}</option>`).join('');
-                            var premiumValues = response.option_last_prices[i];
+                            var optionType = leg[0];
+                            var optionData = optionType === 'Call' ? response.calls_data : response.puts_data;
+                            var availableStrikes = optionData.map(option => option.Strike);
+                            var lastPriceData = {};
+                            availableStrikes.forEach(strike => {
+                                var matchingOption = optionData.find(option => option.Strike === strike);
+                                lastPriceData[strike] = matchingOption ? matchingOption['Last Price'] : 0.0;
+                            });
+                            optionsData.push(lastPriceData);
 
+                            var options = availableStrikes.map(strike => `<option value="${strike}">${strike}</option>`).join('');
                             var defaultStrikeValue = availableStrikes[0];
-                            var defaultPremiumValue = premiumValues[defaultStrikeValue] !== undefined ? premiumValues[defaultStrikeValue] : 0;
+                            var defaultPremiumValue = lastPriceData[defaultStrikeValue];
 
                             optionLeg.innerHTML += `
                                 <label>${leg[1]}</label>
-                                <select id="Strike_${i}" data-index="${i}" class="option-input" onchange="updatePremium(${i}, this.value, ${JSON.stringify(premiumValues)})">
+                                <select id="Strike_${i}" data-index="${i}" class="option-input" onchange="updatePremium(${i}, this.value, ${JSON.stringify(lastPriceData)})">
                                     ${options}
                                 </select><br>
                                 <label>Premium</label>
@@ -125,6 +137,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <label>Quantity</label>
                                 <input type="number" min="1" max="100" value="1" id="quantity_${i}" class="option-input" />
                             `;
+
+                            // Set default selected strike if not set
+                            if (!selectedStrike) {
+                                selectedStrike = parseFloat(leg[2]); // Assuming leg[2] contains the selected strike info
+                            }
                         }
 
                         optionLegsContainer.appendChild(optionLeg);
@@ -133,12 +150,20 @@ document.addEventListener('DOMContentLoaded', function () {
                     attachInputListeners();
                 }
 
+                // Update share cost value
+                if (response.current_price !== undefined) {
+                    shareCostValue = parseFloat(response.current_price);
+                }
+
+                // Handle errors
                 if (response.error) {
                     console.log(`Error: ${response.error}`);
                     document.getElementById('resultsSection').innerHTML = `Error: ${response.error}`;
                 }
+
                 // Debug: Log the average share cost value
                 console.log("Average share cost:", shareCostValue);
+                console.log("Selected strike (after fetch):", selectedStrike); // Debug statement
             },
             error: function (error) {
                 console.log('Error fetching data:', error);
@@ -146,6 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
 
     function updatePremium(index, strikeValue, premiumValues) {
         var premiumInput = document.getElementById(`premium_${index}`);
@@ -156,34 +182,47 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function getSelectedStrike() {
+        var selectedStrikeInput = document.querySelector('.option-input[id^="Strike_"]');
+        if (selectedStrikeInput) {
+            return parseFloat(selectedStrikeInput.value);
+        }
+        return null;
+    }
+
     function attachInputListeners() {
-    var inputs = document.querySelectorAll('.option-input');
-    inputs.forEach(function(input) {
-        input.addEventListener('change', function() {
-            var symbol = tickerInput.value;
-            var tradeDuration = tradeDurationSelect.value;
-            var expirationDate = expiryDateSelect.value;
-            var strategy = strategySelect.value;
+        var inputs = document.querySelectorAll('.option-input');
+        inputs.forEach(function(input) {
+            input.addEventListener('change', function() {
+                var symbol = tickerInput.value;
+                var tradeDuration = tradeDurationSelect.value;
+                var expirationDate = expiryDateSelect.value;
+                var strategy = strategySelect.value;
 
-            // Update sharesValue if the input field is for shares
-            if (this.id.startsWith('shares')) {
-                sharesValue = parseInt(this.value); // Parse the value as an integer
-            }
+                // Update sharesValue if the input field is for shares
+                if (this.id.startsWith('shares')) {
+                    sharesValue = parseInt(this.value);
+                }
 
-            // Update shareCostValue if the input field is for share cost
-            if (this.id.startsWith('share_cost')) {
-                shareCostValue = parseFloat(this.value); // Parse the value as a float
-            }
+                // Update shareCostValue if the input field is for share cost
+                if (this.id.startsWith('share_cost')) {
+                    shareCostValue = parseFloat(this.value);
+                }
 
-            // Fetch data with updated values
-            fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
+                // Get the selected strike price
+                selectedStrike = getSelectedStrike();
+                console.log("Selected strike:", selectedStrike); // Debug statement
 
-            // Debug: Log the current values of sharesValue and shareCostValue
-            console.log("Shares value:", sharesValue);
-            console.log("Average share cost:", shareCostValue);
+                // Fetch data with updated values
+                fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
+
+                // Debug: Log the current values of sharesValue, shareCostValue, and selectedStrike
+                console.log("Shares value:", sharesValue);
+                console.log("Average share cost:", shareCostValue);
+                console.log("Selected strike:", selectedStrike);
+            });
         });
-    });
-}
+    }
 
     function createTable(data) {
         var table = '<table><thead><tr>';
@@ -234,6 +273,8 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
     });
 });
+
+
 </script>
 
 <style>

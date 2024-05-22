@@ -31,7 +31,33 @@
         <!-- Options will be populated dynamically -->
     </select>
      <!-- Container for option legs -->
-    <div id="optionLegsContainer"></div>
+    <!-- Container for option legs -->
+    <div id="optionLegsContainer">
+        {% for leg in option_details %}
+        <div class="option-leg">
+            <h4>Option Leg {{ forloop.counter }}</h4>
+            {% if leg|first == 'Stock' %}
+                <label>{{ leg.1 }}</label>
+                <input type="number" min="1" max="1000" value="100" id="shares_{{ forloop.counter0 }}" class="option-input" /><br>
+                <label>{{ leg.2 }}</label>
+                <input type="number" min="0.01" max="{{ multiplied_current_price }}" value="{{ current_price }}" step="0.01" id="share_cost_{{ forloop.counter0 }}" class="option-input" />
+            {% else %}
+                <label>{{ leg.1 }}</label>
+                <select id="Strike_{{ forloop.counter0 }}" class="option-input">
+                    {% for strike in leg.3.strikes %} {# Change leg[3].strikes to leg.3.strikes #}
+                    <option value="{{ strike }}" {% if strike == leg.2 %}selected{% endif %}>{{ strike }}</option>
+
+                    {% endfor %}
+                </select>
+                <label>Premium</label>
+                <input type="number" min="0.0" max="1000.0" value="{{ leg.3.last_prices.leg.2 }}" step="0.1" id="premium_{{ forloop.counter0 }}" class="option-input" /><br>
+                <label>Quantity</label>
+                <input type="number" min="1" max="100" value="1" id="quantity_{{ forloop.counter0 }}" class="option-input" />
+                
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
 
 </div>
 
