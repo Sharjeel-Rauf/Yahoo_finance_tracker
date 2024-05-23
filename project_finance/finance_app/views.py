@@ -24,12 +24,127 @@ from django.http import JsonResponse
 
 import json
 
-# view of the landing page
 def front_page_view(request):
     context = {}
     context['page_title'] = 'Comprehensive Options Strategy Analyzer'
 
+    # User input for ticker symbol
+    st.sidebar.subheader('Options Strategy Analyzer')
+
+    # User input for ticker symbol
+    symbol = st.sidebar.text_input('Enter Ticker Symbol', 'SPY', key='ticker_input')
+    ticker = yf.Ticker(symbol)
+
+    # Fetch real-time data
+    try:
+        current_price = ticker.history(period='1d')['Close'].iloc[-1]
+        st.sidebar.write(f"Current price of {symbol}: ${current_price:.2f}")
+    except IndexError:
+        st.sidebar.error("Failed to retrieve stock data. Check the ticker symbol and try again.")
+        st.stop()
+
+    # Sidebar for defining option strategy
+    strategy = st.sidebar.selectbox('Choose Strategy', ['Covered Call', 'Collar', 'Put Sale'], key='strategy_select')
+
+    # Add trade duration choice
+    trade_duration = st.sidebar.selectbox("How long would you like to implement this trade?",
+                                        ["Less than 30 days", "30-90 days", "90+ days"], key='trade_duration_select')
+
+    # Fetch and display options chains using the refactored function
+    exps, all_options = options_chain(symbol)
+    today = pd.Timestamp.now().normalize()
+
+    # Filter options based on the selected trade duration
+    if trade_duration == "Less than 30 days":
+        all_options = all_options[pd.to_datetime(all_options['Expiration Date']) <= today + pd.DateOffset(days=30)]
+    elif trade_duration == "30-90 days":
+        all_options = all_options[(today + pd.DateOffset(days=30) < pd.to_datetime(all_options['Expiration Date'])) & (pd.to_datetime(all_options['Expiration Date']) <= today + pd.DateOffset(days=90))]
+    else:  # "90+ days"
+        all_options = all_options[pd.to_datetime(all_options['Expiration Date']) > today + pd.DateOffset(days=90)]
+
+    if all_options.empty:
+        st.sidebar.write("No options data available for the selected duration.")
+        st.stop()
+
+
+    # Filtering the options for selected expiration date and then separating Calls and Puts
+    selected_date = st.sidebar.selectbox('Select Expiry Date:', pd.unique(all_options['Expiration Date']), key='expiry_date_select')
+    selected_options = all_options[all_options['Expiration Date'] == selected_date]
+
+    # Explicitly filter for Calls and Puts based on a pattern in the contract name
+    selected_calls = selected_options[selected_options['Contract Name'].apply(lambda x: re.search(r'[CP]\d+$', x) and 'C' in x)]
+    selected_puts = selected_options[selected_options['Contract Name'].apply(lambda x: re.search(r'[CP]\d+$', x) and 'P' in x)]
+
+
+    # Display Calls panel at the top with a scrollable area
+    st.subheader('Calls')
+    st.dataframe(selected_calls, height=275)  # Adjust the height as needed
+
+    # Display Puts panel below, also with a scrollable area
+    st.subheader('Puts')
+    st.dataframe(selected_puts, height=275)  # Adjust the height as needed
+
+    options_data = []
+    # Determine the number of option legs based on the strategy
+    if strategy == 'Covered Call':
+        option_types = ['Call', 'Stock']
+    elif strategy == 'Collar':
+        option_types = ['Stock', 'Put', 'Call']
+    elif strategy == 'Put Sale':
+        option_types = ['Put']
+
+    # Define the dynamic labeling and inputs based on the strategy
+    strategy_details = {
+        'Covered Call': [('Stock', 'Number of Shares', 'Average Share Cost'), ('Call', 'Call Strike Price')],
+        'Collar': [('Stock', 'Number of Shares', 'Average Share Cost'), ('Put', 'Put Strike Price'),
+                ('Call', 'Call Strike Price')],
+        'Put Sale': [('Put', 'Put Strike Price')]
+    }
+
+    # Fetch the details specific to the selected strategy
+    option_details = strategy_details[strategy]
+
+
+
+
+    # Enrich option details with strike prices and premiums
+    enriched_option_details = []
+    for detail in option_details:
+        option_type = detail[0]
+        if option_type in ['Call', 'Put']:
+            if option_type == 'Call':
+                available_strikes = selected_calls['Strike'].unique()
+                last_prices = {strike: selected_calls[selected_calls['Strike'] == strike]['Last Price'].iloc[0] for strike in available_strikes}
+            else:
+                available_strikes = selected_puts['Strike'].unique()
+                last_prices = {strike: selected_puts[selected_puts['Strike'] == strike]['Last Price'].iloc[0] for strike in available_strikes}
+            default_strike = available_strikes[0]
+            default_premium = last_prices[default_strike]
+            enriched_option_details.append((option_type, detail[1], {'strikes': available_strikes, 'last_prices': last_prices, 'default_strike': default_strike, 'default_premium': default_premium}))
+        else:
+            enriched_option_details.append(detail)
+
+    print("option_type:", option_type)
+
+
+
+
+
+
+    context = {
+        'option_details': enriched_option_details,
+        'current_price': current_price,
+        'multiplied_current_price': 10 * current_price
+    }
+
+
+
+    # Debugging output
+    print("Enriched option details:", enriched_option_details)
+    print("Current price:", current_price)
+
     return render(request, 'finance_app/frontpage.html', context)
+
 
 
         
@@ -40,12 +155,16 @@ def process_all_inputs(request):
         strategy = request.GET.get('strategy')
         trade_duration = request.GET.get('trade_duration')
         expiration_date = request.GET.get('expiration_date')
-        number_of_shares = request.GET.get('shares')
-        average_share_cost = request.GET.get('share_cost')
-        selected_strike = request.GET.get('selected_strike')
-        print("number_of_shares:", number_of_shares)
-        print("average_share_cost:", average_share_cost)
-        print("SELECTED STRIKE:", selected_strike)
+        shares = request.GET.get('shares')
+        share_cost = request.GET.get('share_cost')
+        selected_strike = request.GET.get('strike')
+        selected_premium = request.GET.get('premium')
+        selected_quantity = request.GET.get('quantity')
+        print("Shares:", shares)
+        print("Share Cost:", share_cost)
+        print("Strike:", selected_strike)
+        print("Premium:", selected_premium)
+        print("Quantity:", selected_quantity)
 
         
         print(f"Received parameters: symbol={symbol}, strategy={strategy}, trade_duration={trade_duration}, expiration_date={expiration_date}")
@@ -116,44 +235,29 @@ def process_all_inputs(request):
 
                 option_details = strategy_details[strategy]
 
-
-
+                                    # Dynamically generate inputs based on strategy selection
                 for i, (option_type, *labels) in enumerate(option_details):
-                    if option_type in ['Call', 'Put']:
-                        option_data = selected_calls if option_type == 'Call' else selected_puts
-                        available_strikes = option_data['Strike'].unique()
-                        last_price_data = {strike: option_data[option_data['Strike'] == strike]['Last Price'].iloc[0] if not option_data[option_data['Strike'] == strike].empty else 0.0 for strike in available_strikes}
-                        options_data.append(last_price_data)
-                    else:
-                        options_data.append(None)
-
-                    #                 # Dynamically generate inputs based on strategy selection
-                    # for i, (option_type, *labels) in enumerate(option_details):
                    
 
-                    #     if option_type == 'Stock':
-                    #         number_of_shares = number_of_shares
-                    #         average_share_cost = average_share_cost
-                    #         options_data.append((option_type, number_of_shares, average_share_cost))
-                    #     else:
-                    #         available_strikes = selected_calls['Strike'].unique() if option_type == 'Call' else selected_puts['Strike'].unique()
-                    #         strike = st.sidebar.selectbox(labels[0], available_strikes, key=f"Strike_{i}")
+                        if option_type == 'Stock':
+                            number_of_shares = shares
+                            average_share_cost = share_cost
+                            options_data.append((option_type, number_of_shares, average_share_cost))
+                        else:
+                            available_strikes = selected_calls['Strike'].unique() if option_type == 'Call' else selected_puts['Strike'].unique()
+                            strike = selected_strike
 
-                    #         # Retrieve the last price for the selected strike price
-                    #         if strike:
-                    #             option_data = selected_calls if option_type == 'Call' else selected_puts
-                    #             last_price = option_data[option_data['Strike'] == strike]['Last Price'].iloc[0] if not option_data[option_data['Strike'] == strike].empty else 0.0
+                            # Retrieve the last price for the selected strike price
+                            if strike:
+                                option_data = selected_calls if option_type == 'Call' else selected_puts
+                                last_price = option_data[option_data['Strike'] == strike]['Last Price'].iloc[0] if not option_data[option_data['Strike'] == strike].empty else 0.0
 
-                    #             premium = st.sidebar.number_input("Premium", min_value=0.0, max_value=1000.0, value=last_price, step=0.1, key=f"premium_{i}")
-                    #             quantity = st.sidebar.number_input("Quantity", min_value=1, max_value=100, value=1, key=f"quantity_{i}")
-                    #             options_data.append((option_type, strike, premium, quantity))
+                                premium = selected_premium
+                                quantity = selected_quantity
+                                options_data.append((option_type, strike, premium, quantity))
 
     
-                context = {
-                    'option_details': option_details,
-                    'multiplied_current_price': 10 * current_price,
-                    'current_price': current_price,
-                }
+                
 
                 
                 return JsonResponse({
@@ -173,8 +277,7 @@ def process_all_inputs(request):
         except Exception as e:
             print(f"Error during data fetching: {str(e)}")
             return JsonResponse({'error': str(e)}, status=400)
-    else:
-        return render(request, 'options_template.html', context)
+    
 
 
 

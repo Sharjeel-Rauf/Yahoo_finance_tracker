@@ -33,6 +33,8 @@
 
 
 
+
+
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -41,12 +43,68 @@ document.addEventListener('DOMContentLoaded', function () {
     var tradeDurationSelect = document.getElementById('tradeDurationSelect');
     var expiryDateSelect = document.getElementById('expiryDateSelect');
     var isInitialLoad = true;
-    var sharesValue = 100; // Default value for shares
-    var shareCostValue; // Variable to store share cost value
-    var selectedStrike = null; // Initialize selectedStrike to null
+
 
     // Function to fetch all inputs with current parameters
     function fetchAllInputs(symbol, tradeDuration, expirationDate = null, strategy = 'Covered Call') {
+
+
+        var i = 0;
+var sharesArray = [];
+var shareCostArray = [];
+var strikeArray = [];
+var premiumArray = [];
+var quantityArray = [];
+
+while (true) {
+    var sharesElement = document.getElementById(`shares_${i}`);
+    var shareCostElement = document.getElementById(`share_cost_${i}`);
+    var strikeElement = document.getElementById(`Strike_${i}`);
+    var premiumElement = document.getElementById(`premium_${i}`);
+    var quantityElement = document.getElementById(`quantity_${i}`);
+
+    // Check if all elements are null
+    if (!sharesElement && !shareCostElement && !strikeElement && !premiumElement && !quantityElement) {
+        break;
+    }
+
+    var shares = sharesElement ? parseInt(sharesElement.value) : null;
+    var shareCost = shareCostElement ? parseFloat(shareCostElement.value) : null;
+    var strike = strikeElement ? parseFloat(strikeElement.value) : null;
+    var premium = premiumElement ? parseFloat(premiumElement.value) : null;
+    var quantity = quantityElement ? parseInt(quantityElement.value) : null;
+
+    // Push values to respective arrays
+    sharesArray.push(shares);
+    shareCostArray.push(shareCost);
+    strikeArray.push(strike);
+    premiumArray.push(premium);
+    quantityArray.push(quantity);
+
+    i++;
+}
+
+// Remove null values from arrays
+sharesArray = sharesArray.filter(value => value !== null);
+shareCostArray = shareCostArray.filter(value => value !== null);
+strikeArray = strikeArray.filter(value => value !== null);
+premiumArray = premiumArray.filter(value => value !== null);
+quantityArray = quantityArray.filter(value => value !== null);
+
+// Convert arrays into values for variables
+var shares = sharesArray.length > 0 ? sharesArray[0] : null;
+var shareCost = shareCostArray.length > 0 ? shareCostArray[0] : null;
+var strike = strikeArray.length > 0 ? strikeArray[0] : null;
+var premium = premiumArray.length > 0 ? premiumArray[0] : null;
+var quantity = quantityArray.length > 0 ? quantityArray[0] : null;
+
+// Debugging output for the variables
+console.log('Shares:', shares);
+console.log('Share Cost:', shareCost);
+console.log('Strike:', strike);
+console.log('Premium:', premium);
+console.log('Quantity:', quantity);
+
         $.ajax({
             url: "{% url 'process_all_inputs' %}",
             type: 'GET',
@@ -55,9 +113,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 "symbol": symbol,
                 "trade_duration": tradeDuration,
                 "expiration_date": expirationDate,
-                "shares": sharesValue, // Include shares value in the AJAX request
-                "share_cost": shareCostValue, // Include share cost value in the AJAX request
-                "selected_strike": selectedStrike // Include selected strike prices in the AJAX request
+                "shares": shares,
+                "share_cost": shareCost,
+                "strike": strike,
+                "premium": premium,
+                "quantity": quantity,
             },
             success: function (response) {
                 // Handle expiration dates
@@ -94,61 +154,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('putsTableContainer').innerHTML = putsTable;
                 }
 
-                // Handle option details
-                if (response.option_details) {
-                    var optionLegsContainer = document.getElementById('optionLegsContainer');
-                    optionLegsContainer.innerHTML = '';
-                    var optionsData = [];
-
-                    response.option_details.forEach((leg, i) => {
-                        var optionLeg = document.createElement('div');
-                        optionLeg.className = 'option-leg';
-                        optionLeg.innerHTML = `<h4>Option Leg ${i + 1}</h4>`;
-
-                        if (leg[0] === 'Stock') {
-                            optionLeg.innerHTML += `
-                                <label>${leg[1]}</label>
-                                <input type="number" min="1" max="1000" value="100" id="shares_${i}" class="option-input" /><br>
-                                <label>${leg[2]}</label>
-                                <input type="number" min="0.01" max="${10 * response.current_price}" value="${response.current_price}" step="0.01" id="share_cost_${i}" class="option-input" />
-                            `;
-                        } else {
-                            var optionType = leg[0];
-                            var optionData = optionType === 'Call' ? response.calls_data : response.puts_data;
-                            var availableStrikes = optionData.map(option => option.Strike);
-                            var lastPriceData = {};
-                            availableStrikes.forEach(strike => {
-                                var matchingOption = optionData.find(option => option.Strike === strike);
-                                lastPriceData[strike] = matchingOption ? matchingOption['Last Price'] : 0.0;
-                            });
-                            optionsData.push(lastPriceData);
-
-                            var options = availableStrikes.map(strike => `<option value="${strike}">${strike}</option>`).join('');
-                            var defaultStrikeValue = availableStrikes[0];
-                            var defaultPremiumValue = lastPriceData[defaultStrikeValue];
-
-                            optionLeg.innerHTML += `
-                                <label>${leg[1]}</label>
-                                <select id="Strike_${i}" data-index="${i}" class="option-input" onchange="updatePremium(${i}, this.value, ${JSON.stringify(lastPriceData)})">
-                                    ${options}
-                                </select><br>
-                                <label>Premium</label>
-                                <input type="number" min="0.0" max="1000.0" value="${defaultPremiumValue}" step="0.1" id="premium_${i}" class="option-input" /><br>
-                                <label>Quantity</label>
-                                <input type="number" min="1" max="100" value="1" id="quantity_${i}" class="option-input" />
-                            `;
-
-                            // Set default selected strike if not set
-                            if (!selectedStrike) {
-                                selectedStrike = parseFloat(leg[2]); // Assuming leg[2] contains the selected strike info
-                            }
-                        }
-
-                        optionLegsContainer.appendChild(optionLeg);
-                    });
-
-                    attachInputListeners();
-                }
+    
 
                 // Update share cost value
                 if (response.current_price !== undefined) {
