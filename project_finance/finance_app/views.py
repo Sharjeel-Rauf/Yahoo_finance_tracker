@@ -84,7 +84,7 @@ def front_page_view(request):
     st.subheader('Puts')
     st.dataframe(selected_puts, height=275)  # Adjust the height as needed
 
-    options_data = []
+
     # Determine the number of option legs based on the strategy
     if strategy == 'Covered Call':
         option_types = ['Call', 'Stock']
@@ -106,7 +106,6 @@ def front_page_view(request):
 
 
 
-
     # Enrich option details with strike prices and premiums
     enriched_option_details = []
     for detail in option_details:
@@ -124,7 +123,34 @@ def front_page_view(request):
         else:
             enriched_option_details.append(detail)
 
-    print("option_type:", option_type)
+    print("enriched_option_details:", enriched_option_details)
+    ########################################
+    # Calculate payoff profile
+    def calculate_payoff(price_range, enriched_option_details):
+        total_payoff = np.zeros_like(price_range)
+        for data in enriched_option_details:
+            if data[0] == 'Stock':
+                continue  # Skip stock entries as they do not have a strike or intrinsic value calculation
+            elif data[0] in ['Call', 'Put']:
+                option_type, strike_data = data[0], data[2]
+                strike = strike_data['default_strike']
+                premium = strike_data['default_premium']
+                quantity = 1  # Default quantity for a single option contract
+            else:
+                option_type, strike, premium, quantity = data
+
+            intrinsic_values = np.maximum(price_range - strike, 0) if option_type == 'Call' else np.maximum(strike - price_range, 0)
+            payoff = premium - intrinsic_values if 'Short' in option_type else intrinsic_values - premium
+            total_payoff += payoff * quantity
+        return total_payoff
+
+
+
+    price_range = np.linspace(0.5 * current_price, 1.5 * current_price, 400)
+    payoffs = calculate_payoff(price_range, enriched_option_details)
+
+    
+  
 
 
 
@@ -137,11 +163,6 @@ def front_page_view(request):
         'multiplied_current_price': 10 * current_price
     }
 
-
-
-    # Debugging output
-    print("Enriched option details:", enriched_option_details)
-    print("Current price:", current_price)
 
     return render(request, 'finance_app/frontpage.html', context)
 
