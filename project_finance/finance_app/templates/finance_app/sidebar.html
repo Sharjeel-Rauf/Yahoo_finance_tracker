@@ -57,6 +57,18 @@
     {% endfor %}
 </div>
 
+<div style="color: white;">
+    <h2 style="color: white;">Trade Potentials</h2>
+    <p style="color: white;">Maximum potential gain: ${{ max_gain }}</p>
+    <p style="color: white;">Maximum potential loss: ${{ max_loss }}</p>
+    <p style="color: white;">Breakeven price: {{ breakeven_output }}</p>
+</div>
+
+<div id="summary">
+    <!-- Display the summary content -->
+    {{ summary_content | safe }}
+</div>
+
 
 
 

@@ -9,7 +9,10 @@
 {% include 'finance_app/sidebar.html' %}
 
 <div class="content-container" style="margin-left: 30%;">
-    <h2>Options Data</h2>
+    <h2 style="color: white;">Strategy Payoff Diagram</h2>
+
+    <div id="payoffDiagram"></div>
+
     
     <div id="resultsSection" style="color: white;">
         <!-- Current price and error messages will be displayed here -->
@@ -29,6 +32,7 @@
             </div>
         </div>
     </div>
+    
 </div>
 
 
@@ -37,6 +41,13 @@
 
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 <script>
+          // Load the JSON data passed from Django
+        var fig_json = JSON.parse('{{ fig_json | escapejs }}');
+
+
+        // Plot the chart using Plotly
+        Plotly.newPlot('payoffDiagram', fig_json.data, fig_json.layout);
+
 document.addEventListener('DOMContentLoaded', function () {
     var tickerInput = document.getElementById('tickerSymbolInput');
     var strategySelect = document.getElementById('strategySelect');

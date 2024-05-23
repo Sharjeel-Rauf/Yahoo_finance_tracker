@@ -36,23 +36,41 @@ def generate_summary(symbol, current_price, strategy, trade_duration, selected_d
     # Add detailed information about each option leg
     for index, data in enumerate(options_data, start=1):
         if data[0] == 'Stock':
-            summary_lines.append(
-                f"**Option Leg {index}:**\n"
-                f"    Type: Stock\n"
-                f"    Shares: {data[1]}\n"
-                f"    Average Share Cost: ${data[2]:.2f}"
-            )
+            try:
+                summary_lines.append(
+                    f"**Option Leg {index}:**\n"
+                    f"    Type: Stock\n"
+                    f"    Shares: {data[1]}\n"
+                    f"    Average Share Cost: ${float(data[2]):.2f}\n"
+                )
+            except (IndexError, ValueError) as e:
+                summary_lines.append(f"**Option Leg {index}**: Error processing Stock data: {e}")
+        elif data[0] == 'Call':
+            try:
+                strike_prices = data[2]['strikes']
+                last_prices = data[2]['last_prices']
+                default_strike = data[2]['default_strike']
+                default_premium = data[2]['default_premium']
+
+                summary_lines.append(
+                    f"**Option Leg {index}:**\n"
+                    f"    Type: Call\n"
+                    f"    Default Strike Price: ${default_strike:.2f}\n"
+                    f"    Default Premium: ${default_premium:.2f}\n"
+                    f"    Strike Prices and Last Prices:\n"
+                )
+                for strike in strike_prices:
+                    summary_lines.append(
+                        f"        Strike Price: ${strike:.2f} - Last Price: ${last_prices[strike]:.2f}"
+                    )
+            except (IndexError, KeyError, ValueError) as e:
+                summary_lines.append(f"**Option Leg {index}**: Error processing Call data: {e}")
         else:
-            summary_lines.append(
-                f"**Option Leg {index}:**\n"
-                f"    Type: {data[0]}\n"
-                f"    Strike Price: ${data[1]:.2f}\n"
-                f"    Premium: ${data[2]:.2f}\n"
-                f"    Quantity: {data[3]}"
-            )
+            summary_lines.append(f"**Option Leg {index}**: Unknown option type: {data[0]}")
 
     # Join lines with line breaks to display each item separately
     return "\n\n".join(summary_lines)
+
 
 def options_chain(symbol):
     tk = yf.Ticker(symbol)
