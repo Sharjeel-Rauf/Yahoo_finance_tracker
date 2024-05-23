@@ -37,11 +37,12 @@ def generate_summary(symbol, current_price, strategy, trade_duration, selected_d
     for index, data in enumerate(options_data, start=1):
         if data[0] == 'Stock':
             try:
+                shares = 100  # Get the value of shares
                 summary_lines.append(
                     f"**Option Leg {index}:**\n"
                     f"    Type: Stock\n"
-                    f"    Shares: {data[1]}\n"
-                    f"    Average Share Cost: ${float(data[2]):.2f}\n"
+                    f"    Shares: {shares}\n"  # Use the actual value of shares
+                    f"    Average Share Cost: ${average_share_cost:.2f}\n"
                 )
             except (IndexError, ValueError) as e:
                 summary_lines.append(f"**Option Leg {index}**: Error processing Stock data: {e}")
@@ -51,18 +52,15 @@ def generate_summary(symbol, current_price, strategy, trade_duration, selected_d
                 last_prices = data[2]['last_prices']
                 default_strike = data[2]['default_strike']
                 default_premium = data[2]['default_premium']
+                quantity = data[2].get('quantity', 1)  # Default quantity is 1
 
                 summary_lines.append(
                     f"**Option Leg {index}:**\n"
                     f"    Type: Call\n"
                     f"    Default Strike Price: ${default_strike:.2f}\n"
                     f"    Default Premium: ${default_premium:.2f}\n"
-                    f"    Strike Prices and Last Prices:\n"
+                    f"    Quantity: {quantity}\n"
                 )
-                for strike in strike_prices:
-                    summary_lines.append(
-                        f"        Strike Price: ${strike:.2f} - Last Price: ${last_prices[strike]:.2f}"
-                    )
             except (IndexError, KeyError, ValueError) as e:
                 summary_lines.append(f"**Option Leg {index}**: Error processing Call data: {e}")
         else:
@@ -70,6 +68,7 @@ def generate_summary(symbol, current_price, strategy, trade_duration, selected_d
 
     # Join lines with line breaks to display each item separately
     return "\n\n".join(summary_lines)
+
 
 
 def options_chain(symbol):

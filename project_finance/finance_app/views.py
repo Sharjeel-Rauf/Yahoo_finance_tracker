@@ -34,6 +34,7 @@ def front_page_view(request):
     st.sidebar.subheader('Options Strategy Analyzer')
 
     # User input for ticker symbol
+    symbol_1 = request.GET.get('symbol')
     symbol = st.sidebar.text_input('Enter Ticker Symbol', 'SPY', key='ticker_input')
     ticker = yf.Ticker(symbol)
 
@@ -146,7 +147,7 @@ def front_page_view(request):
         return total_payoff
 
 
-
+    print("enriched_option_details:", enriched_option_details)
     price_range = np.linspace(0.5 * current_price, 1.5 * current_price, 400)
     payoffs = calculate_payoff(price_range, enriched_option_details)
 
@@ -176,6 +177,30 @@ def front_page_view(request):
             symbol, current_price, strategy, trade_duration, selected_date, enriched_option_details
         )
     st.markdown(summary_content, unsafe_allow_html=True)
+    # Format the summary content for display
+    # Format the summary content for display
+    formatted_summary = []
+    for line in summary_content.splitlines():
+        if line.startswith('Option Leg'):
+            if line.startswith('Option Leg 1'):
+                formatted_summary.append({
+                    'option_leg': True,
+                    'content': line.replace("Average Share Cost", "Quantity")
+                })
+            else:
+                formatted_summary.append({
+                    'option_leg': True,
+                    'content': line
+                })
+        elif line.startswith('    Type: Call'):
+            formatted_summary.append({
+                'indent': True,
+                'content': line + " Quantity: 1"
+            })
+        else:
+            formatted_summary.append({
+                'content': line
+            })
 # Plotting the payoff diagram
     fig = go.Figure()
 
@@ -216,7 +241,7 @@ def front_page_view(request):
 
     fig_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
-    print("summary_content:", summary_content)
+    print("formatted_summary:", formatted_summary)
 
     context = {
         'option_details': enriched_option_details,
@@ -226,7 +251,9 @@ def front_page_view(request):
         'max_loss': max_loss,
         'breakeven_output': breakeven_output,
         'fig_json': fig_json,
-        'summary_content': summary_content,
+        'summary_content': formatted_summary,
+        'symbol_1': symbol_1,
+        'yahoo_finance_url': yahoo_finance_url,
     }
 
 

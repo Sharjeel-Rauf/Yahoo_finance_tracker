@@ -13,6 +13,25 @@
 
     <div id="payoffDiagram"></div>
 
+    <div class="container" style = "color: white;">
+        <h1>Analysis Summary</h1>
+        <div class="summary-content">
+            {% for line in summary_content %}
+                {% if line.option_leg %}
+                    <div class="option-leg">{{ line.content }}</div>
+                {% elif line.indent %}
+                    <div class="indent">{{ line.content }}</div>
+                {% else %}
+                    <div>{{ line.content }}</div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <p style = "color: white;">View the source data for {{ symbol_1 }} on <a href="{{ yahoo_finance_url }}" target='_blank'>Yahoo Finance</a></p>
+    
+
+
     
     <div id="resultsSection" style="color: white;">
         <!-- Current price and error messages will be displayed here -->
@@ -315,6 +334,33 @@ console.log('Quantity:', quantity);
     th {
         background-color: #4CAF50;
     }
+
+    .container {
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .summary-content {
+            overflow-y: auto; /* Enable vertical scrolling */
+            max-height: 300px; /* Set a maximum height */
+        }
+
+        .option-leg {
+            padding-left: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .indent {
+            padding-left: 40px;
+            margin-bottom: 5px;
+        }
+
+        .container div {
+            margin-bottom: 5px;
+        }
 </style>
 
 
