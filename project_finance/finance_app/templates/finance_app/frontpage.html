@@ -20,8 +20,7 @@
         <div class="summary-content"></div>
     </div>
 
-    <p style = "color: white;">View the source data for {{ symbol_1 }} on <a href="{{ yahoo_finance_url }}" target='_blank'>Yahoo Finance</a></p>
-    
+    <p id="yahooFinanceLinkContainer" style="color: white;"></p>
 
 
     
@@ -205,6 +204,11 @@
                     console.log('Formatted Summary:', response.formatted_summary);
                     updateSummaryContent(response.formatted_summary);
                 }
+                // Check if yahoo_finance_url is present in the response and update the link
+                if (response.yahoo_finance_url !== undefined) {
+                    console.log('Yahoo Finance URL:', response.yahoo_finance_url);
+                    updateYahooFinanceLink(response.yahoo_finance_url, response.symbol);
+                }
 
                 // Handle errors
                 if (response.error) {
@@ -228,6 +232,13 @@
 
         fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
     }
+
+    function updateYahooFinanceLink(url, symbol) {
+    console.log('Updating Yahoo Finance Link...');
+    var linkContainer = document.getElementById('yahooFinanceLinkContainer');
+    linkContainer.innerHTML = `View the source data for ${symbol} on <a href="${url}" target="_blank">Yahoo Finance</a>`;
+    console.log('Yahoo Finance Link Updated');
+}
 
     function updateSummaryContent(formatted_summary) {
     console.log('Updating Summary Content...');

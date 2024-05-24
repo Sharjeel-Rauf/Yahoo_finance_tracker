@@ -129,8 +129,7 @@ def front_page_view(request):
     ########################################
 
 
-    # Generate the Yahoo Finance options page URL for the entered symbol
-    yahoo_finance_url = f"https://finance.yahoo.com/quote/{symbol}/options"
+ 
 
 
 
@@ -138,8 +137,7 @@ def front_page_view(request):
         'option_details': enriched_option_details,
         'current_price': current_price,
         'multiplied_current_price': 10 * current_price,
-        'symbol_1': symbol,
-        'yahoo_finance_url': yahoo_finance_url,
+      
     }
 
 
@@ -364,7 +362,8 @@ def process_all_inputs(request):
                         })
                 
 
-                
+                # Generate the Yahoo Finance options page URL for the entered symbol
+                yahoo_finance_url = f"https://finance.yahoo.com/quote/{symbol}/options"
                 return JsonResponse({
                     'expiration_dates': expiration_dates,
                     'current_price': current_price,
@@ -376,6 +375,8 @@ def process_all_inputs(request):
                     'breakeven_output': breakeven_output,
                     'fig_json': fig_json,  # Added this line
                     'formatted_summary': formatted_summary,  # Added this line
+                    'yahoo_finance_url': yahoo_finance_url,  # Added this line
+                    'symbol': symbol,
                 })
                
                 
