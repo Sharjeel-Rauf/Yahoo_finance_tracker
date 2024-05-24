@@ -39,7 +39,7 @@
         {% if leg.0 == 'Stock' %}
             <label>{{ leg.1 }}</label>
             <input type="number" min="1" max="1000" value="100" id="shares_{{ forloop.counter0 }}" class="option-input" /><br>
-            <label>{{ leg.2 }}</label>
+            <label>Average Share Cost</label>
             <input type="number" min="0.01" max="{{ multiplied_current_price }}" value="{{ current_price }}" step="0.01" id="share_cost_{{ forloop.counter0 }}" class="option-input" />
         {% else %}
             <label>{{ leg.1 }}</label>
@@ -56,6 +56,7 @@
     </div>
     {% endfor %}
 </div>
+
 
 <div style="color: white;">
     <h2 style="color: white;">Trade Potentials</h2>

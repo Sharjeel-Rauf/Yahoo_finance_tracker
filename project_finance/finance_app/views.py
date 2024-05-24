@@ -34,7 +34,7 @@ def front_page_view(request):
     st.sidebar.subheader('Options Strategy Analyzer')
 
     # User input for ticker symbol
-    symbol_1 = request.GET.get('symbol')
+    
     symbol = st.sidebar.text_input('Enter Ticker Symbol', 'SPY', key='ticker_input')
     ticker = yf.Ticker(symbol)
 
@@ -252,7 +252,7 @@ def front_page_view(request):
         'breakeven_output': breakeven_output,
         'fig_json': fig_json,
         'summary_content': formatted_summary,
-        'symbol_1': symbol_1,
+        'symbol_1': symbol,
         'yahoo_finance_url': yahoo_finance_url,
     }
 
@@ -349,26 +349,23 @@ def process_all_inputs(request):
 
                 option_details = strategy_details[strategy]
 
-                                    # Dynamically generate inputs based on strategy selection
-                for i, (option_type, *labels) in enumerate(option_details):
-                   
-
-                        if option_type == 'Stock':
-                            number_of_shares = shares
-                            average_share_cost = share_cost
-                            options_data.append((option_type, number_of_shares, average_share_cost))
+                # Dynamically generate inputs based on strategy selection
+                # Enrich option details with strike prices and premiums
+                enriched_option_details = []
+                for detail in option_details:
+                    option_type = detail[0]
+                    if option_type in ['Call', 'Put']:
+                        if option_type == 'Call':
+                            available_strikes = selected_calls['Strike'].unique()
+                            last_prices = {strike: selected_calls[selected_calls['Strike'] == strike]['Last Price'].iloc[0] for strike in available_strikes}
                         else:
-                            available_strikes = selected_calls['Strike'].unique() if option_type == 'Call' else selected_puts['Strike'].unique()
-                            strike = selected_strike
-
-                            # Retrieve the last price for the selected strike price
-                            if strike:
-                                option_data = selected_calls if option_type == 'Call' else selected_puts
-                                last_price = option_data[option_data['Strike'] == strike]['Last Price'].iloc[0] if not option_data[option_data['Strike'] == strike].empty else 0.0
-
-                                premium = selected_premium
-                                quantity = selected_quantity
-                                options_data.append((option_type, strike, premium, quantity))
+                            available_strikes = selected_puts['Strike'].unique()
+                            last_prices = {strike: selected_puts[selected_puts['Strike'] == strike]['Last Price'].iloc[0] for strike in available_strikes}
+                        default_strike = available_strikes[0]
+                        default_premium = last_prices[default_strike]
+                        enriched_option_details.append((option_type, detail[1], {'strikes': available_strikes.tolist(), 'last_prices': {k: float(v) for k, v in last_prices.items()}, 'default_strike': float(default_strike), 'default_premium': float(default_premium)}))
+                    else:
+                        enriched_option_details.append(detail)
 
     
                 
@@ -379,8 +376,7 @@ def process_all_inputs(request):
                     'current_price': current_price,
                     'calls_data': calls_data_dict,
                     'puts_data': puts_data_dict,
-                    'option_details': option_details,
-                    'options_data': options_data,
+                    'enriched_option_details': enriched_option_details,
                 })
                
                 

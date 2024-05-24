@@ -191,15 +191,16 @@ console.log('Quantity:', quantity);
                     shareCostValue = parseFloat(response.current_price);
                 }
 
+                if (response.enriched_option_details) {
+                    updateOptionLegs(response.enriched_option_details, response.current_price); // Pass shareCostValue correctly
+                }
+
                 // Handle errors
                 if (response.error) {
                     console.log(`Error: ${response.error}`);
                     document.getElementById('resultsSection').innerHTML = `Error: ${response.error}`;
                 }
 
-                // Debug: Log the average share cost value
-                console.log("Average share cost:", shareCostValue);
-                console.log("Selected strike (after fetch):", selectedStrike); // Debug statement
             },
             error: function (error) {
                 console.log('Error fetching data:', error);
@@ -208,6 +209,46 @@ console.log('Quantity:', quantity);
         });
     }
 
+    function updateOptionLegs(optionLegs, current_price) {
+        var container = document.getElementById('optionLegsContainer');
+        container.innerHTML = '';
+
+        optionLegs.forEach((leg, index) => {
+            var div = document.createElement('div');
+            div.classList.add('option-leg');
+            div.id = `option-leg-${index + 1}`;
+
+            console.log(`Processing leg ${index + 1}:`, leg);
+
+            var html = `<h4>Option Leg ${index + 1}</h4>`;
+            if (leg[0] == 'Stock') {
+                var multipliedCurrentPrice = 10 * current_price; // Calculate multiplied current price
+                console.log(`multipliedCurrentPrice: ${multipliedCurrentPrice}, currentPrice: ${current_price}`);
+
+                html += `<label>Number of Shares</label>
+                         <input type="number" min="1" max="1000" value="100" id="shares_${index}" class="option-input" /><br>
+                         <label>Average Share Cost</label>
+                         <input type="number" min="0.01" max="${multipliedCurrentPrice}" value="${current_price}" step="0.01" id="share_cost_${index}" class="option-input" />`;
+            } else {
+                html += `<label>${leg[1]}</label>
+                         <select id="Strike_${index}" class="option-input">`;
+                leg[2].strikes.forEach(strike => {
+                    var selected = strike == leg[2].default_strike ? 'selected' : '';
+                    html += `<option value="${strike}" ${selected}>${strike}</option>`;
+                });
+                html += `</select>
+                         <label>Premium</label>
+                         <input type="number" min="0.0" max="1000.0" value="${leg[2].default_premium}" step="0.1" id="premium_${index}" class="option-input" /><br>
+                         <label>Quantity</label>
+                         <input type="number" min="1" max="100" value="1" id="quantity_${index}" class="option-input" />`;
+            }
+
+            div.innerHTML = html;
+            container.appendChild(div);
+        });
+
+        attachInputListeners();
+    }
 
     function updatePremium(index, strikeValue, premiumValues) {
         var premiumInput = document.getElementById(`premium_${index}`);
