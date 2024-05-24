@@ -8,24 +8,16 @@
 </div>
 {% include 'finance_app/sidebar.html' %}
 
+
+
 <div class="content-container" style="margin-left: 30%;">
     <h2 style="color: white;">Strategy Payoff Diagram</h2>
 
     <div id="payoffDiagram"></div>
 
-    <div class="container" style = "color: white;">
+    <div class="container" style="color: white;">
         <h1>Analysis Summary</h1>
-        <div class="summary-content">
-            {% for line in summary_content %}
-                {% if line.option_leg %}
-                    <div class="option-leg">{{ line.content }}</div>
-                {% elif line.indent %}
-                    <div class="indent">{{ line.content }}</div>
-                {% else %}
-                    <div>{{ line.content }}</div>
-                {% endif %}
-            {% endfor %}
-        </div>
+        <div class="summary-content"></div>
     </div>
 
     <p style = "color: white;">View the source data for {{ symbol_1 }} on <a href="{{ yahoo_finance_url }}" target='_blank'>Yahoo Finance</a></p>
@@ -60,12 +52,7 @@
 
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 <script>
-          // Load the JSON data passed from Django
-        var fig_json = JSON.parse('{{ fig_json | escapejs }}');
-
-
-        // Plot the chart using Plotly
-        Plotly.newPlot('payoffDiagram', fig_json.data, fig_json.layout);
+    
 
         document.addEventListener('DOMContentLoaded', function () {
     var tickerInput = document.getElementById('tickerSymbolInput');
@@ -199,6 +186,26 @@
                     updateOptionLegs(response.enriched_option_details, response.current_price);
                 }
 
+                if (response.max_gain !== undefined && response.max_loss !== undefined && response.breakeven_output !== undefined) {
+                    console.log('Max Gain:', response.max_gain);
+                    console.log('Max Loss:', response.max_loss);
+                    console.log('Breakeven Output:', response.breakeven_output);
+                    updateTradePotentials(response.max_gain, response.max_loss, response.breakeven_output);  // Updated this line
+                }
+
+                // Check if fig_json is present in the response and update the chart
+                if (response.fig_json !== undefined) {
+                    console.log('Fig JSON:', response.fig_json);
+                    var fig_json = JSON.parse(response.fig_json);
+                    Plotly.newPlot('payoffDiagram', fig_json.data, fig_json.layout);
+                }
+
+                                // Check if formatted_summary is present in the response and update the summary content
+                if (response.formatted_summary !== undefined) {
+                    console.log('Formatted Summary:', response.formatted_summary);
+                    updateSummaryContent(response.formatted_summary);
+                }
+
                 // Handle errors
                 if (response.error) {
                     console.log(`Error: ${response.error}`);
@@ -221,6 +228,33 @@
 
         fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
     }
+
+    function updateSummaryContent(formatted_summary) {
+    console.log('Updating Summary Content...');
+    var summaryContainer = document.querySelector('.summary-content');
+    summaryContainer.innerHTML = ''; // Clear existing content
+
+    formatted_summary.forEach(function(line) {
+        var div = document.createElement('div');
+        if (line.option_leg) {
+            div.className = 'option-leg';
+        } else if (line.indent) {
+            div.className = 'indent';
+        }
+        div.textContent = line.content;
+        summaryContainer.appendChild(div);
+    });
+
+    console.log('Summary Content Updated');
+}
+
+    function updateTradePotentials(max_gain, max_loss, breakeven_output) {
+    console.log('Updating Trade Potentials...');
+    document.getElementById('maxGain').textContent = `Maximum potential gain: $${max_gain}`;
+    document.getElementById('maxLoss').textContent = `Maximum potential loss: $${max_loss}`;
+    document.getElementById('breakevenOutput').textContent = `Breakeven price: ${breakeven_output}`;
+    console.log('Trade Potentials Updated');
+}
 
     function updateOptionLegs(optionLegs, current_price) {
         var container = document.getElementById('optionLegsContainer');
@@ -280,9 +314,6 @@
                 selectedStrike = getSelectedStrike();
                 fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
 
-                console.log("Shares value:", sharesValue);
-                console.log("Average share cost:", shareCostValue);
-                console.log("Selected strike:", selectedStrike);
             });
         });
     }
@@ -303,6 +334,13 @@
         table += '</tbody></table>';
         return table;
     }
+      strategySelect.addEventListener('change', function () {
+        var symbol = tickerInput.value;
+        var tradeDuration = tradeDurationSelect.value;
+        var expirationDate = expiryDateSelect.value;
+        var strategy = strategySelect.value;
+        fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
+    });
 
     function getSelectedStrike() {
         var selectedStrikeElement = document.querySelector('select[id^="Strike_"]');

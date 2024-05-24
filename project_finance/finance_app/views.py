@@ -127,131 +127,17 @@ def front_page_view(request):
             enriched_option_details.append(detail)
 
     ########################################
-    # Calculate payoff profile
-    def calculate_payoff(price_range, enriched_option_details):
-        total_payoff = np.zeros_like(price_range)
-        for data in enriched_option_details:
-            if data[0] == 'Stock':
-                continue  # Skip stock entries as they do not have a strike or intrinsic value calculation
-            elif data[0] in ['Call', 'Put']:
-                option_type, strike_data = data[0], data[2]
-                strike = strike_data['default_strike']
-                premium = strike_data['default_premium']
-                quantity = 1  # Default quantity for a single option contract
-            else:
-                option_type, strike, premium, quantity = data
 
-            intrinsic_values = np.maximum(price_range - strike, 0) if option_type == 'Call' else np.maximum(strike - price_range, 0)
-            payoff = premium - intrinsic_values if 'Short' in option_type else intrinsic_values - premium
-            total_payoff += payoff * quantity
-        return total_payoff
-
-
-    print("enriched_option_details:", enriched_option_details)
-    price_range = np.linspace(0.5 * current_price, 1.5 * current_price, 400)
-    payoffs = calculate_payoff(price_range, enriched_option_details)
-
-    # Display calculated maximum gain, maximum loss, and breakeven points
-    max_gain = max(payoffs)
-    max_loss = min(payoffs)
-
-    # Calculate breakeven points
-    breakeven_indices = np.where(np.diff(np.sign(payoffs)))[0]  # Get indices where payoffs cross zero
-    breakeven_points = price_range[breakeven_indices]
-    # Optional: Round breakeven points to reduce precision noise
-    breakeven_points = np.round(breakeven_points, 2)
-    # Deduplicate and sort breakeven points
-    breakeven_points = sorted(set(breakeven_points))
-    # Display breakeven points
-    breakeven_output = ", ".join(f"${bp:.2f}" for bp in breakeven_points)
-
-    st.markdown("---")
 
     # Generate the Yahoo Finance options page URL for the entered symbol
     yahoo_finance_url = f"https://finance.yahoo.com/quote/{symbol}/options"
-    # Display the clickable link in Streamlit
-    # st.markdown(f"View the source data for {symbol} on [Yahoo Finance]({yahoo_finance_url})", unsafe_allow_html=True)
-    # Create the figure
-     # Generate and display the summary content
-    summary_content = generate_summary(
-            symbol, current_price, strategy, trade_duration, selected_date, enriched_option_details
-        )
-    st.markdown(summary_content, unsafe_allow_html=True)
-    # Format the summary content for display
-    # Format the summary content for display
-    formatted_summary = []
-    for line in summary_content.splitlines():
-        if line.startswith('Option Leg'):
-            if line.startswith('Option Leg 1'):
-                formatted_summary.append({
-                    'option_leg': True,
-                    'content': line.replace("Average Share Cost", "Quantity")
-                })
-            else:
-                formatted_summary.append({
-                    'option_leg': True,
-                    'content': line
-                })
-        elif line.startswith('    Type: Call'):
-            formatted_summary.append({
-                'indent': True,
-                'content': line + " Quantity: 1"
-            })
-        else:
-            formatted_summary.append({
-                'content': line
-            })
-# Plotting the payoff diagram
-    fig = go.Figure()
 
-        # Adding the basic payoff trace
-    fig.add_trace(go.Scatter(x=price_range, y=payoffs, mode='lines', name='Net Payoff', line=dict(color='blue')))
 
-        # Calculate and round breakeven points
-    breakeven_indices = np.where(np.diff(np.sign(payoffs)))[0]  # Get indices where payoffs cross zero
-    breakeven_points = price_range[breakeven_indices]
-    breakeven_points = np.round(breakeven_points, 2)  # Round breakeven points to reduce precision noise
-
-        # Adding breakeven points as a single trace
-    fig.add_trace(go.Scatter(
-            x=breakeven_points,
-            y=[0] * len(breakeven_points),
-            mode='markers',
-            marker=dict(color='red', size=12),
-            name='Breakeven Points'
-        ))
-
-    # Adjust the x-axis range to focus around breakeven points and current stock price
-# Adjust the x-axis range to focus around breakeven points and current stock price
-    # Adjust the x-axis range to focus around breakeven points and current stock price
-    if breakeven_points.any():
-            buffer = (price_range.max() - price_range.min()) * 0.05  # Smaller buffer
-            fig.update_xaxes(range=[min(breakeven_points) - buffer, max(breakeven_points) + buffer])
-
-        # Set a custom width and height for the graph
-   # Set a custom width and height for the graph and add axis titles
-    fig.update_layout(
-        xaxis_title="Stock Price at Expiry",
-        yaxis_title="Net Payoff",
-        showlegend=False,  # This disables the legend
-        autosize=False,
-        width=800,
-        height=600
-    )
-
-    fig_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-
-    print("formatted_summary:", formatted_summary)
 
     context = {
         'option_details': enriched_option_details,
         'current_price': current_price,
         'multiplied_current_price': 10 * current_price,
-        'max_gain': max_gain,
-        'max_loss': max_loss,
-        'breakeven_output': breakeven_output,
-        'fig_json': fig_json,
-        'summary_content': formatted_summary,
         'symbol_1': symbol,
         'yahoo_finance_url': yahoo_finance_url,
     }
@@ -367,7 +253,115 @@ def process_all_inputs(request):
                     else:
                         enriched_option_details.append(detail)
 
-    
+                ########################################
+                # Calculate payoff profile
+                def calculate_payoff(price_range, enriched_option_details):
+                    total_payoff = np.zeros_like(price_range)
+                    for data in enriched_option_details:
+                        if data[0] == 'Stock':
+                            continue  # Skip stock entries as they do not have a strike or intrinsic value calculation
+                        elif data[0] in ['Call', 'Put']:
+                            option_type, strike_data = data[0], data[2]
+                            strike = strike_data['default_strike']
+                            premium = strike_data['default_premium']
+                            quantity = 1  # Default quantity for a single option contract
+                        else:
+                            option_type, strike, premium, quantity = data
+
+                        intrinsic_values = np.maximum(price_range - strike, 0) if option_type == 'Call' else np.maximum(strike - price_range, 0)
+                        payoff = premium - intrinsic_values if 'Short' in option_type else intrinsic_values - premium
+                        total_payoff += payoff * quantity
+                    return total_payoff
+
+
+                price_range = np.linspace(0.5 * current_price, 1.5 * current_price, 400)
+                payoffs = calculate_payoff(price_range, enriched_option_details)
+
+                # Display calculated maximum gain, maximum loss, and breakeven points
+                max_gain = max(payoffs)
+                max_loss = min(payoffs)
+
+                # Calculate breakeven points
+                breakeven_indices = np.where(np.diff(np.sign(payoffs)))[0]  # Get indices where payoffs cross zero
+                breakeven_points = price_range[breakeven_indices]
+                # Optional: Round breakeven points to reduce precision noise
+                breakeven_points = np.round(breakeven_points, 2)
+                # Deduplicate and sort breakeven points
+                breakeven_points = sorted(set(breakeven_points))
+                # Display breakeven points
+                breakeven_output = ", ".join(f"${bp:.2f}" for bp in breakeven_points)
+                print("breakeven_output", breakeven_output)
+
+
+                # Plotting the payoff diagram
+                fig = go.Figure()
+
+                    # Adding the basic payoff trace
+                fig.add_trace(go.Scatter(x=price_range, y=payoffs, mode='lines', name='Net Payoff', line=dict(color='blue')))
+
+                    # Calculate and round breakeven points
+                breakeven_indices = np.where(np.diff(np.sign(payoffs)))[0]  # Get indices where payoffs cross zero
+                breakeven_points = price_range[breakeven_indices]
+                breakeven_points = np.round(breakeven_points, 2)  # Round breakeven points to reduce precision noise
+
+                    # Adding breakeven points as a single trace
+                fig.add_trace(go.Scatter(
+                        x=breakeven_points,
+                        y=[0] * len(breakeven_points),
+                        mode='markers',
+                        marker=dict(color='red', size=12),
+                        name='Breakeven Points'
+                    ))
+
+                # Adjust the x-axis range to focus around breakeven points and current stock price
+            # Adjust the x-axis range to focus around breakeven points and current stock price
+                # Adjust the x-axis range to focus around breakeven points and current stock price
+                if breakeven_points.any():
+                        buffer = (price_range.max() - price_range.min()) * 0.05  # Smaller buffer
+                        fig.update_xaxes(range=[min(breakeven_points) - buffer, max(breakeven_points) + buffer])
+
+                    # Set a custom width and height for the graph
+            # Set a custom width and height for the graph and add axis titles
+                fig.update_layout(
+                    xaxis_title="Stock Price at Expiry",
+                    yaxis_title="Net Payoff",
+                    showlegend=False,  # This disables the legend
+                    autosize=False,
+                    width=800,
+                    height=600
+                )
+
+                fig_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+                            # Generate and display the summary content
+                summary_content = generate_summary(
+                        symbol, current_price, strategy, trade_duration, expiration_date, enriched_option_details
+                    )
+                st.markdown(summary_content, unsafe_allow_html=True)
+                # Format the summary content for display
+                # Format the summary content for display
+                formatted_summary = []
+                for line in summary_content.splitlines():
+                    if line.startswith('Option Leg'):
+                        if line.startswith('Option Leg 1'):
+                            formatted_summary.append({
+                                'option_leg': True,
+                                'content': line.replace("Average Share Cost", "Quantity")
+                            })
+                        else:
+                            formatted_summary.append({
+                                'option_leg': True,
+                                'content': line
+                            })
+                    elif line.startswith('Type: Call'):
+                        formatted_summary.append({
+                            'indent': True,
+                            'content': line + " Quantity: 1"
+                        })
+                    else:
+                        formatted_summary.append({
+                            'content': line
+                        })
                 
 
                 
@@ -377,6 +371,11 @@ def process_all_inputs(request):
                     'calls_data': calls_data_dict,
                     'puts_data': puts_data_dict,
                     'enriched_option_details': enriched_option_details,
+                    'max_gain': max_gain,
+                    'max_loss': max_loss,
+                    'breakeven_output': breakeven_output,
+                    'fig_json': fig_json,  # Added this line
+                    'formatted_summary': formatted_summary,  # Added this line
                 })
                
                 

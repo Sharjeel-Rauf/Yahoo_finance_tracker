@@ -26,11 +26,11 @@ pd.options.display.float_format = "{:,.2f}".format
 
 def generate_summary(symbol, current_price, strategy, trade_duration, selected_date, options_data):
     summary_lines = [
-        f"**Ticker Symbol:** {symbol}",
-        f"**Current Price:** ${current_price:.2f}",
-        f"**Strategy:** {strategy}",
-        f"**Trade Duration:** {trade_duration}",
-        f"**Selected Expiry Date:** {selected_date}"
+        f"Ticker Symbol: {symbol}",
+        f"Current Price: ${current_price:.2f}",
+        f"Strategy: {strategy}",
+        f"Trade Duration: {trade_duration}",
+        f"Selected Expiry Date: {selected_date}"
     ]
 
     # Add detailed information about each option leg
@@ -39,7 +39,7 @@ def generate_summary(symbol, current_price, strategy, trade_duration, selected_d
             try:
                 shares = 100  # Get the value of shares
                 summary_lines.append(
-                    f"**Option Leg {index}:**\n"
+                    f"Option Leg {index}:\n"
                     f"    Type: Stock\n"
                     f"    Shares: {shares}\n"  # Use the actual value of shares
                     f"    Average Share Cost: ${average_share_cost:.2f}\n"
@@ -55,7 +55,7 @@ def generate_summary(symbol, current_price, strategy, trade_duration, selected_d
                 quantity = data[2].get('quantity', 1)  # Default quantity is 1
 
                 summary_lines.append(
-                    f"**Option Leg {index}:**\n"
+                    f"Option Leg {index}:\n"
                     f"    Type: Call\n"
                     f"    Default Strike Price: ${default_strike:.2f}\n"
                     f"    Default Premium: ${default_premium:.2f}\n"
