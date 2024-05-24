@@ -67,73 +67,90 @@
         // Plot the chart using Plotly
         Plotly.newPlot('payoffDiagram', fig_json.data, fig_json.layout);
 
-document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function () {
     var tickerInput = document.getElementById('tickerSymbolInput');
     var strategySelect = document.getElementById('strategySelect');
     var tradeDurationSelect = document.getElementById('tradeDurationSelect');
     var expiryDateSelect = document.getElementById('expiryDateSelect');
     var isInitialLoad = true;
 
+    // Function to fetch expiration dates and update the select element
+    function fetchExpirationDates() {
+        var symbol = tickerInput.value;
+        var tradeDuration = tradeDurationSelect.value;
+        var strategy = strategySelect.value;
 
-    // Function to fetch all inputs with current parameters
-    function fetchAllInputs(symbol, tradeDuration, expirationDate = null, strategy = 'Covered Call') {
-
-
-        var i = 0;
-var sharesArray = [];
-var shareCostArray = [];
-var strikeArray = [];
-var premiumArray = [];
-var quantityArray = [];
-
-while (true) {
-    var sharesElement = document.getElementById(`shares_${i}`);
-    var shareCostElement = document.getElementById(`share_cost_${i}`);
-    var strikeElement = document.getElementById(`Strike_${i}`);
-    var premiumElement = document.getElementById(`premium_${i}`);
-    var quantityElement = document.getElementById(`quantity_${i}`);
-
-    // Check if all elements are null
-    if (!sharesElement && !shareCostElement && !strikeElement && !premiumElement && !quantityElement) {
-        break;
+        fetchAllInputs(symbol, tradeDuration, null, strategy, updateExpirationDates);
     }
 
-    var shares = sharesElement ? parseInt(sharesElement.value) : null;
-    var shareCost = shareCostElement ? parseFloat(shareCostElement.value) : null;
-    var strike = strikeElement ? parseFloat(strikeElement.value) : null;
-    var premium = premiumElement ? parseFloat(premiumElement.value) : null;
-    var quantity = quantityElement ? parseInt(quantityElement.value) : null;
+    // Callback to update expiration dates and fetch options data for the first expiration date
+    function updateExpirationDates(response) {
+        if (response.expiration_dates) {
+            expiryDateSelect.innerHTML = '';
+            response.expiration_dates.forEach(function (date) {
+                var option = document.createElement('option');
+                option.value = date;
+                option.textContent = date;
+                expiryDateSelect.appendChild(option);
+            });
 
-    // Push values to respective arrays
-    sharesArray.push(shares);
-    shareCostArray.push(shareCost);
-    strikeArray.push(strike);
-    premiumArray.push(premium);
-    quantityArray.push(quantity);
+            if (response.expiration_dates.length > 0) {
+                expiryDateSelect.value = response.expiration_dates[0];
+                fetchOptionsData();
+            }
+        }
+    }
 
-    i++;
-}
+    // Function to fetch all inputs with current parameters
+    function fetchAllInputs(symbol, tradeDuration, expirationDate = null, strategy = 'Covered Call', callback = null) {
+        var i = 0;
+        var sharesArray = [];
+        var shareCostArray = [];
+        var strikeArray = [];
+        var premiumArray = [];
+        var quantityArray = [];
 
-// Remove null values from arrays
-sharesArray = sharesArray.filter(value => value !== null);
-shareCostArray = shareCostArray.filter(value => value !== null);
-strikeArray = strikeArray.filter(value => value !== null);
-premiumArray = premiumArray.filter(value => value !== null);
-quantityArray = quantityArray.filter(value => value !== null);
+        while (true) {
+            var sharesElement = document.getElementById(`shares_${i}`);
+            var shareCostElement = document.getElementById(`share_cost_${i}`);
+            var strikeElement = document.getElementById(`Strike_${i}`);
+            var premiumElement = document.getElementById(`premium_${i}`);
+            var quantityElement = document.getElementById(`quantity_${i}`);
 
-// Convert arrays into values for variables
-var shares = sharesArray.length > 0 ? sharesArray[0] : null;
-var shareCost = shareCostArray.length > 0 ? shareCostArray[0] : null;
-var strike = strikeArray.length > 0 ? strikeArray[0] : null;
-var premium = premiumArray.length > 0 ? premiumArray[0] : null;
-var quantity = quantityArray.length > 0 ? quantityArray[0] : null;
+            // Check if all elements are null
+            if (!sharesElement && !shareCostElement && !strikeElement && !premiumElement && !quantityElement) {
+                break;
+            }
 
-// Debugging output for the variables
-console.log('Shares:', shares);
-console.log('Share Cost:', shareCost);
-console.log('Strike:', strike);
-console.log('Premium:', premium);
-console.log('Quantity:', quantity);
+            var shares = sharesElement ? parseInt(sharesElement.value) : null;
+            var shareCost = shareCostElement ? parseFloat(shareCostElement.value) : null;
+            var strike = strikeElement ? parseFloat(strikeElement.value) : null;
+            var premium = premiumElement ? parseFloat(premiumElement.value) : null;
+            var quantity = quantityElement ? parseInt(quantityElement.value) : null;
+
+            // Push values to respective arrays
+            sharesArray.push(shares);
+            shareCostArray.push(shareCost);
+            strikeArray.push(strike);
+            premiumArray.push(premium);
+            quantityArray.push(quantity);
+
+            i++;
+        }
+
+        // Remove null values from arrays
+        sharesArray = sharesArray.filter(value => value !== null);
+        shareCostArray = shareCostArray.filter(value => value !== null);
+        strikeArray = strikeArray.filter(value => value !== null);
+        premiumArray = premiumArray.filter(value => value !== null);
+        quantityArray = quantityArray.filter(value => value !== null);
+
+        // Convert arrays into values for variables
+        var shares = sharesArray.length > 0 ? sharesArray[0] : null;
+        var shareCost = shareCostArray.length > 0 ? shareCostArray[0] : null;
+        var strike = strikeArray.length > 0 ? strikeArray[0] : null;
+        var premium = premiumArray.length > 0 ? premiumArray[0] : null;
+        var quantity = quantityArray.length > 0 ? quantityArray[0] : null;
 
         $.ajax({
             url: "{% url 'process_all_inputs' %}",
@@ -151,19 +168,8 @@ console.log('Quantity:', quantity);
             },
             success: function (response) {
                 // Handle expiration dates
-                if (response.expiration_dates) {
-                    expiryDateSelect.innerHTML = '';
-                    response.expiration_dates.forEach(function (date) {
-                        var option = document.createElement('option');
-                        option.value = date;
-                        option.textContent = date;
-                        expiryDateSelect.appendChild(option);
-                    });
-
-                    if (isInitialLoad) {
-                        isInitialLoad = false;
-                        expiryDateSelect.dispatchEvent(new Event('change'));
-                    }
+                if (response.expiration_dates && callback) {
+                    callback(response);
                 }
 
                 // Handle current price
@@ -184,15 +190,13 @@ console.log('Quantity:', quantity);
                     document.getElementById('putsTableContainer').innerHTML = putsTable;
                 }
 
-    
-
                 // Update share cost value
                 if (response.current_price !== undefined) {
                     shareCostValue = parseFloat(response.current_price);
                 }
 
                 if (response.enriched_option_details) {
-                    updateOptionLegs(response.enriched_option_details, response.current_price); // Pass shareCostValue correctly
+                    updateOptionLegs(response.enriched_option_details, response.current_price);
                 }
 
                 // Handle errors
@@ -209,6 +213,15 @@ console.log('Quantity:', quantity);
         });
     }
 
+    function fetchOptionsData() {
+        var symbol = tickerInput.value;
+        var tradeDuration = tradeDurationSelect.value;
+        var expirationDate = expiryDateSelect.value;
+        var strategy = strategySelect.value;
+
+        fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
+    }
+
     function updateOptionLegs(optionLegs, current_price) {
         var container = document.getElementById('optionLegsContainer');
         container.innerHTML = '';
@@ -218,12 +231,9 @@ console.log('Quantity:', quantity);
             div.classList.add('option-leg');
             div.id = `option-leg-${index + 1}`;
 
-            console.log(`Processing leg ${index + 1}:`, leg);
-
             var html = `<h4>Option Leg ${index + 1}</h4>`;
             if (leg[0] == 'Stock') {
-                var multipliedCurrentPrice = 10 * current_price; // Calculate multiplied current price
-                console.log(`multipliedCurrentPrice: ${multipliedCurrentPrice}, currentPrice: ${current_price}`);
+                var multipliedCurrentPrice = 10 * current_price;
 
                 html += `<label>Number of Shares</label>
                          <input type="number" min="1" max="1000" value="100" id="shares_${index}" class="option-input" /><br>
@@ -250,23 +260,6 @@ console.log('Quantity:', quantity);
         attachInputListeners();
     }
 
-    function updatePremium(index, strikeValue, premiumValues) {
-        var premiumInput = document.getElementById(`premium_${index}`);
-        if (premiumValues && premiumValues[strikeValue] !== undefined) {
-            premiumInput.value = premiumValues[strikeValue];
-        } else {
-            premiumInput.value = '';
-        }
-    }
-
-    function getSelectedStrike() {
-        var selectedStrikeInput = document.querySelector('.option-input[id^="Strike_"]');
-        if (selectedStrikeInput) {
-            return parseFloat(selectedStrikeInput.value);
-        }
-        return null;
-    }
-
     function attachInputListeners() {
         var inputs = document.querySelectorAll('.option-input');
         inputs.forEach(function(input) {
@@ -276,24 +269,17 @@ console.log('Quantity:', quantity);
                 var expirationDate = expiryDateSelect.value;
                 var strategy = strategySelect.value;
 
-                // Update sharesValue if the input field is for shares
                 if (this.id.startsWith('shares')) {
                     sharesValue = parseInt(this.value);
                 }
 
-                // Update shareCostValue if the input field is for share cost
                 if (this.id.startsWith('share_cost')) {
                     shareCostValue = parseFloat(this.value);
                 }
 
-                // Get the selected strike price
                 selectedStrike = getSelectedStrike();
-                console.log("Selected strike:", selectedStrike); // Debug statement
-
-                // Fetch data with updated values
                 fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
 
-                // Debug: Log the current values of sharesValue, shareCostValue, and selectedStrike
                 console.log("Shares value:", sharesValue);
                 console.log("Average share cost:", shareCostValue);
                 console.log("Selected strike:", selectedStrike);
@@ -318,39 +304,17 @@ console.log('Quantity:', quantity);
         return table;
     }
 
-    function fetchExpirationDates() {
-        var symbol = tickerInput.value;
-        var tradeDuration = tradeDurationSelect.value;
-        var strategy = strategySelect.value;
-        fetchAllInputs(symbol, tradeDuration, null, strategy);
+    function getSelectedStrike() {
+        var selectedStrikeElement = document.querySelector('select[id^="Strike_"]');
+        return selectedStrikeElement ? parseFloat(selectedStrikeElement.value) : null;
     }
 
-    // Fetch data on page load
+    tradeDurationSelect.addEventListener('change', fetchExpirationDates);
+    expiryDateSelect.addEventListener('change', fetchOptionsData);
+
+    // Initial load
     fetchExpirationDates();
-
-    // Fetch data when any of the inputs change
-    tickerInput.addEventListener('input', function () {
-        fetchExpirationDates();
-    });
-    tradeDurationSelect.addEventListener('change', function () {
-        fetchExpirationDates();
-    });
-    expiryDateSelect.addEventListener('change', function () {
-        var symbol = tickerInput.value;
-        var tradeDuration = tradeDurationSelect.value;
-        var expirationDate = expiryDateSelect.value;
-        var strategy = strategySelect.value;
-        fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
-    });
-    strategySelect.addEventListener('change', function () {
-        var symbol = tickerInput.value;
-        var tradeDuration = tradeDurationSelect.value;
-        var expirationDate = expiryDateSelect.value;
-        var strategy = strategySelect.value;
-        fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
-    });
 });
-
 
 </script>
 
