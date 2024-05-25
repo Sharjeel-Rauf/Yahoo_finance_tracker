@@ -3,235 +3,213 @@
 {% block title %}Welcome | {% endblock %}
 
 {% block content %}
+
 <div class="page-container">
     <h1 class="page-title">Yahoo Finance</h1>
 </div>
 {% include 'finance_app/sidebar.html' %}
 
-
-
 <div class="content-container" style="margin-left: 30%;">
-    <h2 style="color: white;">Strategy Payoff Diagram</h2>
-
-    <div id="payoffDiagram"></div>
-
-    <div class="container" style="color: white;">
+    <div id="payoffDiagram" class="container" style="display: none;"></div>
+    
+    <div id="tradePotentials" class="container" style="color: white; display: none;">
+        <h2>Trade Potentials</h2>
+        <p id="maxGain"></p>
+        <p id="maxLoss"></p>
+        <p id="breakevenOutput"></p>
+    </div>
+    
+    <div class="container" id="summaryContainer" style="color: white; display: none;">
         <h1>Analysis Summary</h1>
         <div class="summary-content"></div>
     </div>
 
-    <p id="yahooFinanceLinkContainer" style="color: white;"></p>
-
-
-    
-    <div id="resultsSection" style="color: white;">
-        <!-- Current price and error messages will be displayed here -->
+    <div id="callsSection" class="container" style="display: none;">
+        <h3>Calls</h3>
+        <div id="callsTableContainer" class="table-container"></div>
     </div>
-    
-    <div id="optionsSection" style="color: white;">
-        <div id="callsSection">
-            <h3>Calls</h3>
-            <div id="callsTableContainer" class="table-container">
-                <!-- Calls table will be displayed here -->
-            </div>
-        </div>
-        <div id="putsSection">
-            <h3>Puts</h3>
-            <div id="putsTableContainer" class="table-container">
-                <!-- Puts table will be displayed here -->
-            </div>
-        </div>
+    <div id="putsSection" class="container" style="display: none;">
+        <h3>Puts</h3>
+        <div id="putsTableContainer" class="table-container"></div>
     </div>
-    
 </div>
-
-
-
-
 
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 <script>
-    
+    document.addEventListener('DOMContentLoaded', function () {
+        var tickerInput = document.getElementById('tickerSymbolInput');
+        var strategySelect = document.getElementById('strategySelect');
+        var tradeDurationSelect = document.getElementById('tradeDurationSelect');
+        var expiryDateSelect = document.getElementById('expiryDateSelect');
+        var isInitialLoad = true;
 
-        document.addEventListener('DOMContentLoaded', function () {
-    var tickerInput = document.getElementById('tickerSymbolInput');
-    var strategySelect = document.getElementById('strategySelect');
-    var tradeDurationSelect = document.getElementById('tradeDurationSelect');
-    var expiryDateSelect = document.getElementById('expiryDateSelect');
-    var isInitialLoad = true;
+        function fetchExpirationDates() {
+            var symbol = tickerInput.value;
+            var tradeDuration = tradeDurationSelect.value;
+            var strategy = strategySelect.value;
 
-    // Function to fetch expiration dates and update the select element
-    function fetchExpirationDates() {
-        var symbol = tickerInput.value;
-        var tradeDuration = tradeDurationSelect.value;
-        var strategy = strategySelect.value;
+            fetchAllInputs(symbol, tradeDuration, null, strategy, updateExpirationDates);
+        }
 
-        fetchAllInputs(symbol, tradeDuration, null, strategy, updateExpirationDates);
-    }
+        function updateExpirationDates(response) {
+            if (response.expiration_dates) {
+                expiryDateSelect.innerHTML = '';
+                response.expiration_dates.forEach(function (date) {
+                    var option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = date;
+                    expiryDateSelect.appendChild(option);
+                });
 
-    // Callback to update expiration dates and fetch options data for the first expiration date
-    function updateExpirationDates(response) {
-        if (response.expiration_dates) {
-            expiryDateSelect.innerHTML = '';
-            response.expiration_dates.forEach(function (date) {
-                var option = document.createElement('option');
-                option.value = date;
-                option.textContent = date;
-                expiryDateSelect.appendChild(option);
+                if (response.expiration_dates.length > 0) {
+                    expiryDateSelect.value = response.expiration_dates[0];
+                    fetchOptionsData();
+                }
+            }
+        }
+
+        function fetchAllInputs(symbol, tradeDuration, expirationDate = null, strategy = 'Covered Call', callback = null) {
+            var i = 0;
+            var sharesArray = [];
+            var shareCostArray = [];
+            var strikeArray = [];
+            var premiumArray = [];
+            var quantityArray = [];
+
+            while (true) {
+                var sharesElement = document.getElementById(`shares_${i}`);
+                var shareCostElement = document.getElementById(`share_cost_${i}`);
+                var strikeElement = document.getElementById(`Strike_${i}`);
+                var premiumElement = document.getElementById(`premium_${i}`);
+                var quantityElement = document.getElementById(`quantity_${i}`);
+
+                if (!sharesElement && !shareCostElement && !strikeElement && !premiumElement && !quantityElement) {
+                    break;
+                }
+
+                var shares = sharesElement ? parseInt(sharesElement.value) : null;
+                var shareCost = shareCostElement ? parseFloat(shareCostElement.value) : null;
+                var strike = strikeElement ? parseFloat(strikeElement.value) : null;
+                var premium = premiumElement ? parseFloat(premiumElement.value) : null;
+                var quantity = quantityElement ? parseInt(quantityElement.value) : null;
+
+                sharesArray.push(shares);
+                shareCostArray.push(shareCost);
+                strikeArray.push(strike);
+                premiumArray.push(premium);
+                quantityArray.push(quantity);
+
+                i++;
+            }
+
+            sharesArray = sharesArray.filter(value => value !== null);
+            shareCostArray = shareCostArray.filter(value => value !== null);
+            strikeArray = strikeArray.filter(value => value !== null);
+            premiumArray = premiumArray.filter(value => value !== null);
+            quantityArray = quantityArray.filter(value => value !== null);
+
+            var shares = sharesArray.length > 0 ? sharesArray[0] : null;
+            var shareCost = shareCostArray.length > 0 ? shareCostArray[0] : null;
+            var strike = strikeArray.length > 0 ? strikeArray[0] : null;
+            var premium = premiumArray.length > 0 ? premiumArray[0] : null;
+            var quantity = quantityArray.length > 0 ? quantityArray[0] : null;
+
+            $.ajax({
+                url: "{% url 'process_all_inputs' %}",
+                type: 'GET',
+                data: {
+                    "strategy": strategy,
+                    "symbol": symbol,
+                    "trade_duration": tradeDuration,
+                    "expiration_date": expirationDate,
+                    "shares": shares,
+                    "share_cost": shareCost,
+                    "strike": strike,
+                    "premium": premium,
+                    "quantity": quantity,
+                },
+                success: function (response) {
+                    if (response.expiration_dates && callback) {
+                        callback(response);
+                    }
+
+                    if (response.current_price) {
+                        var formattedPrice = parseFloat(response.current_price).toFixed(2);
+                        document.getElementById('resultsSection').innerHTML = `Current price of ${symbol}: $${formattedPrice}`;
+                    }
+
+                    // Update this part within the success function of the AJAX call
+                    if (response.calls_data) {
+                        var callsTable = createTable(response.calls_data);
+                        document.getElementById('callsTableContainer').innerHTML = callsTable;
+                        document.getElementById('callsSection').style.display = 'block';
+                    }
+
+                    if (response.puts_data) {
+                        var putsTable = createTable(response.puts_data);
+                        document.getElementById('putsTableContainer').innerHTML = putsTable;
+                        document.getElementById('putsSection').style.display = 'block';
+                    }
+
+                    if (response.enriched_option_details) {
+                        updateOptionLegs(
+                            response.enriched_option_details,
+                            response.current_price,
+                            response.shares,
+                            response.share_cost,
+                            response.selected_strike,
+                            response.selected_premium,
+                            response.selected_quantity
+                        );
+                    }
+
+                    if (response.max_gain !== undefined && response.max_loss !== undefined && response.breakeven_output !== undefined) {
+                        console.log('Max Gain:', response.max_gain);
+                        console.log('Max Loss:', response.max_loss);
+                        console.log('Breakeven Output:', response.breakeven_output);
+                        updateTradePotentials(response.max_gain, response.max_loss, response.breakeven_output);
+                    }
+
+                    if (response.fig_json !== undefined) {
+                        console.log('Fig JSON:', response.fig_json);
+                        var fig_json = JSON.parse(response.fig_json);
+                        Plotly.newPlot('payoffDiagram', fig_json.data, fig_json.layout);
+                        document.getElementById('payoffDiagram').style.display = 'block';
+                    }
+
+                    if (response.formatted_summary !== undefined) {
+                        console.log('Formatted Summary:', response.formatted_summary);
+                        updateSummaryContent(response.formatted_summary);
+                        document.getElementById('summaryContainer').style.display = 'block';
+                    }
+
+                    if (response.yahoo_finance_url !== undefined) {
+                        console.log('Yahoo Finance URL:', response.yahoo_finance_url);
+                        updateYahooFinanceLink(response.yahoo_finance_url, response.symbol);
+                    }
+
+                    if (response.error) {
+                        console.log(`Error: ${response.error}`);
+                        document.getElementById('resultsSection').innerHTML = `Error: ${response.error}`;
+                    }
+
+                },
+                error: function (error) {
+                    console.log('Error fetching data:', error);
+                    document.getElementById('resultsSection').innerHTML = 'Error fetching data';
+                }
             });
-
-            if (response.expiration_dates.length > 0) {
-                expiryDateSelect.value = response.expiration_dates[0];
-                fetchOptionsData();
-            }
-        }
-    }
-
-    // Function to fetch all inputs with current parameters
-    function fetchAllInputs(symbol, tradeDuration, expirationDate = null, strategy = 'Covered Call', callback = null) {
-        var i = 0;
-        var sharesArray = [];
-        var shareCostArray = [];
-        var strikeArray = [];
-        var premiumArray = [];
-        var quantityArray = [];
-
-        while (true) {
-            var sharesElement = document.getElementById(`shares_${i}`);
-            var shareCostElement = document.getElementById(`share_cost_${i}`);
-            var strikeElement = document.getElementById(`Strike_${i}`);
-            var premiumElement = document.getElementById(`premium_${i}`);
-            var quantityElement = document.getElementById(`quantity_${i}`);
-
-            // Check if all elements are null
-            if (!sharesElement && !shareCostElement && !strikeElement && !premiumElement && !quantityElement) {
-                break;
-            }
-
-            var shares = sharesElement ? parseInt(sharesElement.value) : null;
-            var shareCost = shareCostElement ? parseFloat(shareCostElement.value) : null;
-            var strike = strikeElement ? parseFloat(strikeElement.value) : null;
-            var premium = premiumElement ? parseFloat(premiumElement.value) : null;
-            var quantity = quantityElement ? parseInt(quantityElement.value) : null;
-
-            // Push values to respective arrays
-            sharesArray.push(shares);
-            shareCostArray.push(shareCost);
-            strikeArray.push(strike);
-            premiumArray.push(premium);
-            quantityArray.push(quantity);
-
-            i++;
         }
 
-        // Remove null values from arrays
-        sharesArray = sharesArray.filter(value => value !== null);
-        shareCostArray = shareCostArray.filter(value => value !== null);
-        strikeArray = strikeArray.filter(value => value !== null);
-        premiumArray = premiumArray.filter(value => value !== null);
-        quantityArray = quantityArray.filter(value => value !== null);
+        function fetchOptionsData() {
+            var symbol = tickerInput.value;
+            var tradeDuration = tradeDurationSelect.value;
+            var expirationDate = expiryDateSelect.value;
+            var strategy = strategySelect.value;
 
-        // Convert arrays into values for variables
-        var shares = sharesArray.length > 0 ? sharesArray[0] : null;
-        var shareCost = shareCostArray.length > 0 ? shareCostArray[0] : null;
-        var strike = strikeArray.length > 0 ? strikeArray[0] : null;
-        var premium = premiumArray.length > 0 ? premiumArray[0] : null;
-        var quantity = quantityArray.length > 0 ? quantityArray[0] : null;
+            fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
+        }
 
-        $.ajax({
-            url: "{% url 'process_all_inputs' %}",
-            type: 'GET',
-            data: {
-                "strategy": strategy,
-                "symbol": symbol,
-                "trade_duration": tradeDuration,
-                "expiration_date": expirationDate,
-                "shares": shares,
-                "share_cost": shareCost,
-                "strike": strike,
-                "premium": premium,
-                "quantity": quantity,
-            },
-            success: function (response) {
-                // Handle expiration dates
-                if (response.expiration_dates && callback) {
-                    callback(response);
-                }
-
-                // Handle current price
-                if (response.current_price) {
-                    var formattedPrice = parseFloat(response.current_price).toFixed(2);
-                    document.getElementById('resultsSection').innerHTML = `Current price of ${symbol}: $${formattedPrice}`;
-                }
-
-                // Handle calls data
-                if (response.calls_data) {
-                    var callsTable = createTable(response.calls_data);
-                    document.getElementById('callsTableContainer').innerHTML = callsTable;
-                }
-
-                // Handle puts data
-                if (response.puts_data) {
-                    var putsTable = createTable(response.puts_data);
-                    document.getElementById('putsTableContainer').innerHTML = putsTable;
-                }
-
-                // Update share cost value
-                if (response.current_price !== undefined) {
-                    shareCostValue = parseFloat(response.current_price);
-                }
-
-                if (response.enriched_option_details) {
-                    updateOptionLegs(response.enriched_option_details, response.current_price);
-                }
-
-                if (response.max_gain !== undefined && response.max_loss !== undefined && response.breakeven_output !== undefined) {
-                    console.log('Max Gain:', response.max_gain);
-                    console.log('Max Loss:', response.max_loss);
-                    console.log('Breakeven Output:', response.breakeven_output);
-                    updateTradePotentials(response.max_gain, response.max_loss, response.breakeven_output);  // Updated this line
-                }
-
-                // Check if fig_json is present in the response and update the chart
-                if (response.fig_json !== undefined) {
-                    console.log('Fig JSON:', response.fig_json);
-                    var fig_json = JSON.parse(response.fig_json);
-                    Plotly.newPlot('payoffDiagram', fig_json.data, fig_json.layout);
-                }
-
-                                // Check if formatted_summary is present in the response and update the summary content
-                if (response.formatted_summary !== undefined) {
-                    console.log('Formatted Summary:', response.formatted_summary);
-                    updateSummaryContent(response.formatted_summary);
-                }
-                // Check if yahoo_finance_url is present in the response and update the link
-                if (response.yahoo_finance_url !== undefined) {
-                    console.log('Yahoo Finance URL:', response.yahoo_finance_url);
-                    updateYahooFinanceLink(response.yahoo_finance_url, response.symbol);
-                }
-
-                // Handle errors
-                if (response.error) {
-                    console.log(`Error: ${response.error}`);
-                    document.getElementById('resultsSection').innerHTML = `Error: ${response.error}`;
-                }
-
-            },
-            error: function (error) {
-                console.log('Error fetching data:', error);
-                document.getElementById('resultsSection').innerHTML = 'Error fetching data';
-            }
-        });
-    }
-
-    function fetchOptionsData() {
-        var symbol = tickerInput.value;
-        var tradeDuration = tradeDurationSelect.value;
-        var expirationDate = expiryDateSelect.value;
-        var strategy = strategySelect.value;
-
-        fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
-    }
 
     function updateYahooFinanceLink(url, symbol) {
     console.log('Updating Yahoo Finance Link...');
@@ -239,132 +217,130 @@
     linkContainer.innerHTML = `View the source data for ${symbol} on <a href="${url}" target="_blank">Yahoo Finance</a>`;
     console.log('Yahoo Finance Link Updated');
 }
+function updateSummaryContent(formatted_summary) {
+            console.log('Updating Summary Content...');
+            var summaryContainer = document.querySelector('.summary-content');
+            summaryContainer.innerHTML = ''; // Clear existing content
 
-    function updateSummaryContent(formatted_summary) {
-    console.log('Updating Summary Content...');
-    var summaryContainer = document.querySelector('.summary-content');
-    summaryContainer.innerHTML = ''; // Clear existing content
+            formatted_summary.forEach(function (line) {
+                var div = document.createElement('div');
+                if (line.option_leg) {
+                    div.className = 'option-leg';
+                } else if (line.indent) {
+                    div.className = 'indent';
+                }
+                div.textContent = line.content;
+                summaryContainer.appendChild(div);
+            });
 
-    formatted_summary.forEach(function(line) {
-        var div = document.createElement('div');
-        if (line.option_leg) {
-            div.className = 'option-leg';
-        } else if (line.indent) {
-            div.className = 'indent';
+            console.log('Summary Content Updated');
         }
-        div.textContent = line.content;
-        summaryContainer.appendChild(div);
-    });
 
-    console.log('Summary Content Updated');
-}
-
-    function updateTradePotentials(max_gain, max_loss, breakeven_output) {
+        function updateTradePotentials(max_gain, max_loss, breakeven_output) {
     console.log('Updating Trade Potentials...');
     document.getElementById('maxGain').textContent = `Maximum potential gain: $${max_gain}`;
     document.getElementById('maxLoss').textContent = `Maximum potential loss: $${max_loss}`;
     document.getElementById('breakevenOutput').textContent = `Breakeven price: ${breakeven_output}`;
+    document.getElementById('tradePotentials').style.display = 'block'; // Display the section
     console.log('Trade Potentials Updated');
 }
 
-    function updateOptionLegs(optionLegs, current_price) {
-        var container = document.getElementById('optionLegsContainer');
-        container.innerHTML = '';
+        function updateOptionLegs(optionLegs, current_price, shares, share_cost, selected_strike, selected_premium, selected_quantity) {
+            var container = document.getElementById('optionLegsContainer');
+            container.innerHTML = '';
 
-        optionLegs.forEach((leg, index) => {
-            var div = document.createElement('div');
-            div.classList.add('option-leg');
-            div.id = `option-leg-${index + 1}`;
+            optionLegs.forEach((leg, index) => {
+                var div = document.createElement('div');
+                div.classList.add('option-leg');
+                div.id = `option-leg-${index + 1}`;
 
-            var html = `<h4>Option Leg ${index + 1}</h4>`;
-            if (leg[0] == 'Stock') {
-                var multipliedCurrentPrice = 10 * current_price;
+                var html = `<h4>Option Leg ${index + 1}</h4>`;
+                if (leg[0] == 'Stock') {
+                    var multipliedCurrentPrice = 10 * current_price;
 
-                html += `<label>Number of Shares</label>
-                         <input type="number" min="1" max="1000" value="100" id="shares_${index}" class="option-input" /><br>
-                         <label>Average Share Cost</label>
-                         <input type="number" min="0.01" max="${multipliedCurrentPrice}" value="${current_price}" step="0.01" id="share_cost_${index}" class="option-input" />`;
-            } else {
-                html += `<label>${leg[1]}</label>
-                         <select id="Strike_${index}" class="option-input">`;
-                leg[2].strikes.forEach(strike => {
-                    var selected = strike == leg[2].default_strike ? 'selected' : '';
-                    html += `<option value="${strike}" ${selected}>${strike}</option>`;
-                });
-                html += `</select>
-                         <label>Premium</label>
-                         <input type="number" min="0.0" max="1000.0" value="${leg[2].default_premium}" step="0.1" id="premium_${index}" class="option-input" /><br>
-                         <label>Quantity</label>
-                         <input type="number" min="1" max="100" value="1" id="quantity_${index}" class="option-input" />`;
-            }
-
-            div.innerHTML = html;
-            container.appendChild(div);
-        });
-
-        attachInputListeners();
-    }
-
-    function attachInputListeners() {
-        var inputs = document.querySelectorAll('.option-input');
-        inputs.forEach(function(input) {
-            input.addEventListener('change', function() {
-                var symbol = tickerInput.value;
-                var tradeDuration = tradeDurationSelect.value;
-                var expirationDate = expiryDateSelect.value;
-                var strategy = strategySelect.value;
-
-                if (this.id.startsWith('shares')) {
-                    sharesValue = parseInt(this.value);
+                    html += `<label>Number of Shares</label>
+                             <input type="number" min="1" max="1000" value="${shares}" id="shares_${index}" class="option-input" /><br>
+                             <label>Average Share Cost</label>
+                             <input type="number" min="0.01" max="${multipliedCurrentPrice}" value="${share_cost}" step="0.01" id="share_cost_${index}" class="option-input" />`;
+                } else {
+                    html += `<label>${leg[1]}</label>
+                             <select id="Strike_${index}" class="option-input">`;
+                    leg[2].strikes.forEach(strike => {
+                        var selected = strike == selected_strike ? 'selected' : '';
+                        html += `<option value="${strike}" ${selected}>${strike}</option>`;
+                    });
+                    html += `</select>
+                             <label>Premium</label>
+                             <input type="number" min="0.0" max="1000.0" value="${selected_premium}" step="0.1" id="premium_${index}" class="option-input" /><br>
+                             <label>Quantity</label>
+                             <input type="number" min="1" max="100" value="${selected_quantity}" id="quantity_${index}" class="option-input" />`;
                 }
 
-                if (this.id.startsWith('share_cost')) {
-                    shareCostValue = parseFloat(this.value);
-                }
-
-                selectedStrike = getSelectedStrike();
-                fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
-
+                div.innerHTML = html;
+                container.appendChild(div);
             });
-        });
-    }
 
-    function createTable(data) {
-        var table = '<table><thead><tr>';
-        for (var key in data[0]) {
-            table += `<th>${key}</th>`;
+            attachInputListeners();
         }
-        table += '</tr></thead><tbody>';
-        data.forEach(function (row) {
-            table += '<tr>';
-            for (var key in row) {
-                table += `<td>${row[key]}</td>`;
+
+        function attachInputListeners() {
+            var inputs = document.querySelectorAll('.option-input');
+            inputs.forEach(function(input) {
+                input.addEventListener('change', function() {
+                    var symbol = tickerInput.value;
+                    var tradeDuration = tradeDurationSelect.value;
+                    var expirationDate = expiryDateSelect.value;
+                    var strategy = strategySelect.value;
+
+                    if (this.id.startsWith('shares')) {
+                        sharesValue = parseInt(this.value);
+                    }
+
+                    if (this.id.startsWith('share_cost')) {
+                        shareCostValue = parseFloat(this.value);
+                    }
+
+                    selectedStrike = getSelectedStrike();
+                    fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
+                });
+            });
+        }
+
+        function createTable(data) {
+            var table = '<table><thead><tr>';
+            for (var key in data[0]) {
+                table += `<th>${key}</th>`;
             }
-            table += '</tr>';
+            table += '</tr></thead><tbody>';
+            data.forEach(function (row) {
+                table += '<tr>';
+                for (var key in row) {
+                    table += `<td>${row[key]}</td>`;
+                }
+                table += '</tr>';
+            });
+            table += '</tbody></table>';
+            return table;
+        }
+
+        strategySelect.addEventListener('change', function () {
+            var symbol = tickerInput.value;
+            var tradeDuration = tradeDurationSelect.value;
+            var expirationDate = expiryDateSelect.value;
+            var strategy = strategySelect.value;
+            fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
         });
-        table += '</tbody></table>';
-        return table;
-    }
-      strategySelect.addEventListener('change', function () {
-        var symbol = tickerInput.value;
-        var tradeDuration = tradeDurationSelect.value;
-        var expirationDate = expiryDateSelect.value;
-        var strategy = strategySelect.value;
-        fetchAllInputs(symbol, tradeDuration, expirationDate, strategy);
+
+        function getSelectedStrike() {
+            var selectedStrikeElement = document.querySelector('select[id^="Strike_"]');
+            return selectedStrikeElement ? parseFloat(selectedStrikeElement.value) : null;
+        }
+
+        tradeDurationSelect.addEventListener('change', fetchExpirationDates);
+        expiryDateSelect.addEventListener('change', fetchOptionsData);
+
+        fetchExpirationDates();
     });
-
-    function getSelectedStrike() {
-        var selectedStrikeElement = document.querySelector('select[id^="Strike_"]');
-        return selectedStrikeElement ? parseFloat(selectedStrikeElement.value) : null;
-    }
-
-    tradeDurationSelect.addEventListener('change', fetchExpirationDates);
-    expiryDateSelect.addEventListener('change', fetchOptionsData);
-
-    // Initial load
-    fetchExpirationDates();
-});
-
 </script>
 
 <style>
@@ -390,34 +366,31 @@
     }
 
     .container {
-            margin: 20px;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
+        margin: 20px;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
 
-        .summary-content {
-            overflow-y: auto; /* Enable vertical scrolling */
-            max-height: 300px; /* Set a maximum height */
-        }
+    .summary-content {
+        overflow-y: auto;
+        max-height: 300px;
+    }
 
-        .option-leg {
-            padding-left: 20px;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
+    .option-leg {
+        padding-left: 20px;
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
 
-        .indent {
-            padding-left: 40px;
-            margin-bottom: 5px;
-        }
+    .indent {
+        padding-left: 40px;
+        margin-bottom: 5px;
+    }
 
-        .container div {
-            margin-bottom: 5px;
-        }
+    .container div {
+        margin-bottom: 5px;
+    }
 </style>
-
-
-
 
 {% endblock %}

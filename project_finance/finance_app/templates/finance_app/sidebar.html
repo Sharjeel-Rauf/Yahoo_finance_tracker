@@ -1,14 +1,61 @@
 {% load static %}
 {% block content %}
 <!-- sidebar.html -->
-<div class="sidebar" style="width: 30%; background-color: #262730; color: white; position: fixed; height: 100%; overflow-y: auto;">
-    <img src="{% static 'images/gift.jpeg' %}" alt="Image" style="width: 30%;">
+<style>
+ .sidebar {
+    width: 30%;
+    background-color: #262730;
+    color: white;
+    position: fixed;
+    height: 100%;
+    overflow-y: auto;
+    padding: 20px; /* Added padding */
+    box-sizing: border-box; /* Ensures padding is included in the width */
+}
 
-    <h3 style="color: white;">Options Strategy Analyzer</h3>
-    
-    <h3 style="color: white;">Enter Ticker Symbol</h3>
+.sidebar img {
+    width: 100%; /* Adjust image width to fill the sidebar */
+    margin-bottom: 20px; /* Added margin */
+}
+
+.sidebar h3 {
+    margin-top: 20px; /* Added margin */
+}
+
+.option-leg {
+    margin-bottom: 20px; /* Increased margin */
+}
+
+.option-leg label {
+    display: block; /* Ensure labels are displayed in block */
+    margin-bottom: 5px; /* Added margin between labels and inputs */
+}
+
+.option-leg input,
+.option-leg select {
+    width: 100%; /* Make input fields fill the width of the container */
+    margin-bottom: 10px; /* Added margin */
+}
+
+.option-leg select {
+    height: 30px; /* Adjust height of select elements */
+}
+
+.option-leg:last-child {
+    margin-bottom: 0; /* Remove margin for last option leg */
+}
+
+</style>
+
+<div class="sidebar">
+    <img src="{% static 'images/gift.jpeg' %}" alt="Image">
+
+    <h3>Options Strategy Analyzer</h3>
+
+    <h3>Enter Ticker Symbol</h3>
     <input type="text" id="tickerSymbolInput" value="SPY">
-    <div id="resultsSection" style="color: white;">
+
+    <div id="resultsSection">
         <!-- Current price and error messages will be displayed here -->
     </div>
 
@@ -19,59 +66,43 @@
         <option value="Put Sale">Put Sale</option>
     </select>
 
-    <h3 style="color: white;">Select Trade Duration</h3>
+    <h3>Select Trade Duration</h3>
     <select id="tradeDurationSelect">
         <option value="Less than 30 days">Less than 30 days</option>
         <option value="30-90 days">30-90 days</option>
         <option value="90+ days">90+ days</option>
     </select>
 
-    <h3 style="color: white;">Select Expiry Date</h3>
+    <h3>Select Expiry Date</h3>
     <select id="expiryDateSelect">
         <!-- Options will be populated dynamically -->
     </select>
 
-<!-- Container for option legs -->
-<div id="optionLegsContainer">
-    {% for leg in option_details %}
-    <div class="option-leg">
-        <h4>Option Leg {{ forloop.counter }}</h4>
-        {% if leg.0 == 'Stock' %}
-            <label>{{ leg.1 }}</label>
-            <input type="number" min="1" max="1000" value="100" id="shares_{{ forloop.counter0 }}" class="option-input" /><br>
-            <label>Average Share Cost</label>
-            <input type="number" min="0.01" max="{{ multiplied_current_price }}" value="{{ current_price }}" step="0.01" id="share_cost_{{ forloop.counter0 }}" class="option-input" />
-        {% else %}
-            <label>{{ leg.1 }}</label>
-            <select id="Strike_{{ forloop.counter0 }}" class="option-input">
-                {% for strike in leg.2.strikes %}
-                <option value="{{ strike }}" {% if strike == leg.2.default_strike %}selected{% endif %}>{{ strike }}</option>
-                {% endfor %}
-            </select>
-            <label>Premium</label>
-            <input type="number" min="0.0" max="1000.0" value="{{ leg.2.default_premium }}" step="0.1" id="premium_{{ forloop.counter0 }}" class="option-input" /><br>
-            <label>Quantity</label>
-            <input type="number" min="1" max="100" value="1" id="quantity_{{ forloop.counter0 }}" class="option-input" />
-        {% endif %}
+    <!-- Container for option legs -->
+    <div id="optionLegsContainer">
+        {% for leg in option_details %}
+        <div class="option-leg">
+            <h4>Option Leg {{ forloop.counter }}</h4>
+            {% if leg.0 == 'Stock' %}
+                <label>{{ leg.1 }}</label>
+                <input type="number" min="1" max="1000" value="100" id="shares_{{ forloop.counter0 }}" class="option-input" /><br>
+                <label>Average Share Cost</label>
+                <input type="number" min="0.01" max="{{ multiplied_current_price }}" value="{{ current_price }}" step="0.01" id="share_cost_{{ forloop.counter0 }}" class="option-input" />
+            {% else %}
+                <label>{{ leg.1 }}</label>
+                <select id="Strike_{{ forloop.counter0 }}" class="option-input">
+                    {% for strike in leg.2.strikes %}
+                    <option value="{{ strike }}" {% if strike == leg.2.default_strike %}selected{% endif %}>{{ strike }}</option>
+                    {% endfor %}
+                </select>
+                <label>Premium</label>
+                <input type="number" min="0.0" max="1000.0" value="{{ leg.2.default_premium }}" step="0.1" id="premium_{{ forloop.counter0 }}" class="option-input" /><br>
+                <label>Quantity</label>
+                <input type="number" min="1" max="100" value="1" id="quantity_{{ forloop.counter0 }}" class="option-input" />
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
-</div>
-
-
-<div id="tradePotentials">
-    <h2 style="color: white;">Trade Potentials</h2>
-    <p id="maxGain" style="color: white;"></p>
-    <p id="maxLoss" style="color: white;"></p>
-    <p id="breakevenOutput" style="color: white;"></p>
-</div>
-
-
-
-
-
-
-    
-
 </div>
 
 {% endblock %}

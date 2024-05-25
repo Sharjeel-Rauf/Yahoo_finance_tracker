@@ -250,7 +250,7 @@ def process_all_inputs(request):
                         enriched_option_details.append((option_type, detail[1], {'strikes': available_strikes.tolist(), 'last_prices': {k: float(v) for k, v in last_prices.items()}, 'default_strike': float(default_strike), 'default_premium': float(default_premium)}))
                     else:
                         enriched_option_details.append(detail)
-
+                
                 ########################################
                 # Calculate payoff profile
                 def calculate_payoff(price_range, enriched_option_details):
@@ -377,6 +377,12 @@ def process_all_inputs(request):
                     'formatted_summary': formatted_summary,  # Added this line
                     'yahoo_finance_url': yahoo_finance_url,  # Added this line
                     'symbol': symbol,
+            
+                    'shares': shares,  # Added this line
+                    'share_cost': share_cost,  # Added this line
+                    'selected_strike': selected_strike,  # Added this line
+                    'selected_premium': selected_premium,  # Added this line
+                    'selected_quantity': selected_quantity,  # Added this line
                 })
                
                 
