@@ -30,19 +30,6 @@
     </div>
 
     <div class="content-container black-background">
-        <div id="payoffDiagram" class="container" style="display: none;"></div>
-        
-        <div id="tradePotentials" class="container black-background" style="display: none;">
-            <h2>Trade Potentials</h2>
-            <p id="maxGain"></p>
-            <p id="maxLoss"></p>
-            <p id="breakevenOutput"></p>
-        </div>
-        
-        <div class="container black-background" id="summaryContainer" style="display: none;">
-            <h1>Analysis Summary</h1>
-            <div class="summary-content"></div>
-        </div>
 
         <div id="callsSection" class="container black-background" style="display: none;">
             <h3>Calls</h3>
@@ -52,6 +39,30 @@
             <h3>Puts</h3>
             <div id="putsTableContainer" class="table-container"></div>
         </div>
+
+        
+        <div class="flex-container">
+
+            
+            <div class="container black-background" id="summaryContainer" style="display: none;">
+                <h2>Analysis Summary</h2>
+                <div class="summary-content"></div>
+            </div>
+            
+            <div id="tradePotentials" class="container black-background" style="display: none;">
+                <h2>Trade Potentials</h2>
+                <p id="maxGain"></p>
+                <p id="maxLoss"></p>
+                <p id="breakevenOutput"></p>
+            </div>
+        
+
+            <div class="container black-background">
+                <h2 id = "payoffDiagramHeading" style="display: none;">Strategy Payoff Diagram</h2>
+                <div id="payoffDiagram" class="container" style="display: none;"></div>
+            </div>
+
+        </div>      
     </div>
 </div>
 
@@ -193,11 +204,47 @@
                     }
 
                     if (response.fig_json !== undefined) {
-                        console.log('Fig JSON:', response.fig_json);
-                        var fig_json = JSON.parse(response.fig_json);
-                        Plotly.newPlot('payoffDiagram', fig_json.data, fig_json.layout);
-                        document.getElementById('payoffDiagram').style.display = 'block';
-                    }
+    console.log('Fig JSON:', response.fig_json);
+    var fig_json = JSON.parse(response.fig_json);
+
+    // Adjust the width and height of the plot
+    var customWidth = 279; // Width in pixels
+    var customHeight = 446; // Height in pixels
+    fig_json.layout.width = customWidth;
+    fig_json.layout.height = customHeight;
+
+    // Customize the layout
+    fig_json.layout.plot_bgcolor = 'black'; // Set background color to black
+    fig_json.layout.paper_bgcolor = 'black'; // Set paper background color to black
+    fig_json.layout.xaxis.color = 'white'; // Set x-axis color to white
+    fig_json.layout.yaxis.color = 'white'; // Set y-axis color to white
+    fig_json.layout.xaxis.gridcolor = 'transparent'; // Remove vertical grid lines
+    fig_json.layout.yaxis.gridcolor = 'white'; // Set y-axis grid color to white
+    fig_json.layout.xaxis.showgrid = false; // Remove vertical grid lines
+    fig_json.layout.yaxis.showgrid = true; // Ensure horizontal grid lines are shown
+
+    // Update modebar settings
+    fig_json.layout.modebar = {
+        orientation: 'v',
+        bgcolor: 'black',
+        color: 'white',
+        activecolor: 'white'
+    };
+
+    // Add config to ensure modebar is visible
+    var config = {
+        displayModeBar: true,
+        modeBarButtonsToRemove: [],
+        displaylogo: false,
+        responsive: true
+    };
+
+    // Plot the adjusted figure
+    Plotly.newPlot('payoffDiagram', fig_json.data, fig_json.layout, config);
+    document.getElementById('payoffDiagramHeading').style.display = 'block';
+    document.getElementById('payoffDiagram').style.display = 'block';
+    
+}
 
                     if (response.formatted_summary !== undefined) {
                         console.log('Formatted Summary:', response.formatted_summary);
@@ -331,21 +378,21 @@ function updateSummaryContent(formatted_summary) {
         }
 
         function createTable(data) {
-            var table = '<table><thead><tr>';
-            for (var key in data[0]) {
-                table += `<th>${key}</th>`;
-            }
-            table += '</tr></thead><tbody>';
-            data.forEach(function (row) {
-                table += '<tr>';
-                for (var key in row) {
-                    table += `<td>${row[key]}</td>`;
-                }
-                table += '</tr>';
-            });
-            table += '</tbody></table>';
-            return table;
+    var table = '<table class="custom-table"><thead><tr>';
+    for (var key in data[0]) {
+        table += `<th>${key}</th>`;
+    }
+    table += '</tr></thead><tbody>';
+    data.forEach(function (row, index) {
+        table += `<tr class="${index % 2 === 0 ? 'even' : 'odd'}">`;
+        for (var key in row) {
+            table += `<td>${row[key]}</td>`;
         }
+        table += '</tr>';
+    });
+    table += '</tbody></table>';
+    return table;
+}
 
         strategySelect.addEventListener('change', function () {
             var symbol = tickerInput.value;

@@ -11,6 +11,30 @@ body {
   color: white;
 }
 
+
+#payoffDiagram {
+  width: 297px; /* Set the desired width */
+  height: 446px; /* Set the desired height */
+  overflow: hidden; /* Hide any content that overflows the container */
+}
+
+.flex-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  overflow: auto; /* Enable scrolling if contents overflow */
+  max-height: 400px; /* Set a maximum height for the flex container */
+}
+
+.flex-container > .container {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+
 .btn {
   padding: 10px 20px;
   border-radius: 5px;
@@ -42,6 +66,8 @@ body {
   }
 }
 
+
+/* ############################  sidebar  ########################################### */
 .sidebar {
   width: 30%;
   background-color: #262730;
@@ -62,6 +88,12 @@ body {
   margin-top: 20px;
 }
 
+.form-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center elements horizontally */
+}
+
 .option-leg {
   margin-bottom: 20px;
 }
@@ -71,19 +103,79 @@ body {
   margin-bottom: 5px;
 }
 
-.option-leg input,
-.option-leg select {
-  width: 100%;
-  margin-bottom: 10px;
+input[type='text'],
+input[type='number'],
+select {
+  width: 80%; /* Increase width to 80% */
+  height: 40px; /* Increase height */
+  background-color: black; /* Set background color to black */
+  color: white; /* Set text color to white */
+  padding-left: 10px; /* Add padding to the left */
+  padding-right: 10px; /* Add padding to the right */
+  border: 1px solid white; /* Initial border color */
+  border-radius: 5px; /* Make corners rounded */
+  box-sizing: border-box; /* Ensure padding and border are included in the element's total width and height */
+  text-align: left; /* Align text to the left */
 }
 
-.option-leg select {
-  height: 30px;
+input[type='text']:focus,
+input[type='number']:focus,
+select:focus {
+  border-color: red; /* Highlight border in red when focused */
+}
+
+select {
+  height: 40px; /* Increase height */
 }
 
 .option-leg:last-child {
   margin-bottom: 0;
 }
+
+.number-input {
+  display: flex;
+  align-items: center;
+}
+
+.number-input button {
+  background-color: #333;
+  color: white;
+  border: none;
+  width: 30px;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px; /* Make corners rounded */
+}
+
+.number-input button:focus {
+  outline: none;
+}
+
+.number-input input {
+  text-align: left; /* Align text to the left */
+  width: calc(100% - 60px); /* Adjust width to account for button size */
+  height: 40px;
+  background-color: black;
+  color: white;
+  border: 1px solid white;
+  border-radius: 5px; /* Make corners rounded */
+  box-sizing: border-box;
+}
+
+.number-input button.minus {
+  border-right: 1px solid white;
+}
+
+.number-input button.plus {
+  border-left: 1px solid white;
+}
+
+
+
+/* ######################################### */
 
 .main-content {
   margin-left: 30%;
@@ -93,29 +185,45 @@ body {
   height: 100%;
 }
 
+/* ############ TABLE ############### */
+
 .table-container {
-  width: 100%;
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  margin-bottom: 20px;
+  border: none; /* Remove borders */
+  border-radius: 0; /* Remove border radius */
+  width: 100%; /* Set width */
+  max-height: 300px; /* Set maximum height */
+  overflow: auto; /* Enable scrolling */
+  overflow-x: auto; /* Enable horizontal scrolling */
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  color: white;
+.custom-table {
+  min-width: 100%; /* Set minimum width */
+  table-layout: fixed; /* Fixed table layout */
 }
 
-th, td {
-  padding: 8px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
+.custom-table th,
+.custom-table td {
+  padding: 10px; /* Add padding */
+  border: 1px solid white; /* Add border */
+  overflow: visible; /* Make overflow visible */
+  text-overflow: ellipsis; /* Show ellipsis for overflow */
+  white-space: nowrap; /* Prevent wrapping */
 }
 
-th {
-  background-color: #4CAF50;
+.container {
+  border: none; /* Remove border */
 }
+
+.container h3 {
+  background-color: #1A1C24; /* Set background color */
+  color: white; /* Set text color */
+  padding: 10px; /* Add padding */
+  border-radius: 5px; /* Add border radius */
+  margin-top: 0; /* Remove top margin */
+}
+
+
+/* ######################################### */
 
 .container {
   margin: 20px;
@@ -125,7 +233,7 @@ th {
 }
 
 .summary-content {
-  overflow-y: auto;
+  overflow-y: visible;
   max-height: 300px;
 }
 
