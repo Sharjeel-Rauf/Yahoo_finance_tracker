@@ -404,7 +404,7 @@ def process_all_inputs(request):
 # logout view
 def LogoutView(request):
     logout(request)
-    return redirect('frontpage')
+    return redirect('login')
 
 def signup(request):
     if request.method == 'POST':

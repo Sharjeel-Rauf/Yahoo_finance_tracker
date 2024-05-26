@@ -7,26 +7,15 @@
         <meta charset='UTF-8'>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="{% static 'style.css' %}">
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
         <script src="https://kit.fontawesome.com/a50dc07351.js" crossorigin="anonymous"></script>
         <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     {% endblock %}
 </head>
 
 <body>
-<nav>
-    <div>
-        <a href="/">Yahoo Finance</a>
-    </div>
 
-    <div>
-        {% if request.user.is_authenticated %}
-            <a href="/logout/">Log out</a>
-        {% else %}
-            <a href="/login/">Log in</a>
-            <a href="/signup/" class="btn">Sign up</a>
-        {% endif %}
-    </div>
-</nav>
 
 {% block content %}
 {% endblock %}

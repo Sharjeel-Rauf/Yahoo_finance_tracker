@@ -1,74 +1,166 @@
 /* Reset CSS */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-    font-family: Arial, sans-serif;
-    background-color: black;
-}
-
-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 40px;
-    background-color: black;
-}
-
-nav a {
-    text-decoration: none;
-    color: white;
-    font-size: 18px;
-    margin-right: 20px;
-    transition: all 0.3s ease;
-}
-
-nav a:hover {
-    color: lightgray;
+  font-family: Arial, sans-serif;
+  background-color: black !important;
+  color: white;
 }
 
 .btn {
-    padding: 10px 20px;
-    border-radius: 5px;
-    background-color: white;
-    color: black;
-    text-decoration: none;
-    transition: all 0.3s ease;
+  padding: 10px 20px;
+  border-radius: 5px;
+  background-color: white;
+  color: black;
+  text-decoration: none;
+  transition: all 0.3s ease;
 }
 
 .btn:hover {
-    background-color: lightgray;
-    color: black;
+  background-color: lightgray;
+  color: black;
 }
 
-  /* CSS for the title page */
-  .page-container {
-    padding: 10px;
-    text-align: center;
-  }
+.page-container {
+  padding: 10px;
+  text-align: center;
+}
 
+.page-title {
+  font-size: 24px;
+  color: #fff;
+  margin-top: 20px;
+}
+
+@media (min-width: 1024px) {
   .page-title {
-    font-size: 24px;
-    color: #fff;
-    margin-top: 20px;
-  }
-
-  @media (min-width: 1024px) {
-    .page-title {
       font-size: 48px;
-    }
   }
+}
 
-
-
-
-  /* styles.css */
 .sidebar {
-    float: left; /* Align sidebar to the left */
-    height: 100vh; /* Full height sidebar */
-    position: fixed; /* Fixed positioning so sidebar stays in view */
-    overflow-y: auto; /* Allow sidebar content to be scrolled */
+  width: 30%;
+  background-color: #262730;
+  color: white;
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.sidebar img {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.sidebar h3 {
+  margin-top: 20px;
+}
+
+.option-leg {
+  margin-bottom: 20px;
+}
+
+.option-leg label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.option-leg input,
+.option-leg select {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.option-leg select {
+  height: 30px;
+}
+
+.option-leg:last-child {
+  margin-bottom: 0;
+}
+
+.main-content {
+  margin-left: 30%;
+  background-color: black;
+  color: white;
+  padding: 20px;
+  height: 100%;
+}
+
+.table-container {
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  color: white;
+}
+
+th, td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #4CAF50;
+}
+
+.container {
+  margin: 20px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.summary-content {
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.indent {
+  padding-left: 40px;
+  margin-bottom: 5px;
+}
+
+.container div {
+  margin-bottom: 5px;
+}
+
+.content-container {
+  background-color: black;
+}
+/* styles.css */
+.black-background {
+  background-color: black;
+  color: white;
+}
+.dropdown-menu {
+  right: 0;
+  left: auto;
+  background-color: black;
+  color: white;
+  min-width: 10rem;
+  max-width: 20rem;
+  overflow-wrap: break-word;
+}
+
+.dropdown-item {
+  color: white;
+}
+
+.dropdown-item:hover {
+  background-color: #333;
+  color: white;
 }

@@ -31,6 +31,8 @@ ALLOWED_HOSTS = ["*"]
 
 LOGIN_REDIRECT_URL = '/'
 LOGIN_URL = '/login/'
+# Redirect to home page after logout
+LOGOUT_REDIRECT_URL = '/login/'
 
 
 # Application definition
