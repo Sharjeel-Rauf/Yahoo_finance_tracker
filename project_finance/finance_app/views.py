@@ -294,15 +294,15 @@ def process_all_inputs(request):
                 # Plotting the payoff diagram
                 fig = go.Figure()
 
-                    # Adding the basic payoff trace
+                # Adding the basic payoff trace
                 fig.add_trace(go.Scatter(x=price_range, y=payoffs, mode='lines', name='Net Payoff', line=dict(color='blue')))
 
-                    # Calculate and round breakeven points
+                # Calculate and round breakeven points
                 breakeven_indices = np.where(np.diff(np.sign(payoffs)))[0]  # Get indices where payoffs cross zero
                 breakeven_points = price_range[breakeven_indices]
                 breakeven_points = np.round(breakeven_points, 2)  # Round breakeven points to reduce precision noise
 
-                    # Adding breakeven points as a single trace
+                # Adding breakeven points as a single trace
                 fig.add_trace(go.Scatter(
                         x=breakeven_points,
                         y=[0] * len(breakeven_points),
@@ -312,14 +312,11 @@ def process_all_inputs(request):
                     ))
 
                 # Adjust the x-axis range to focus around breakeven points and current stock price
-            # Adjust the x-axis range to focus around breakeven points and current stock price
-                # Adjust the x-axis range to focus around breakeven points and current stock price
                 if breakeven_points.any():
                         buffer = (price_range.max() - price_range.min()) * 0.05  # Smaller buffer
                         fig.update_xaxes(range=[min(breakeven_points) - buffer, max(breakeven_points) + buffer])
 
-                    # Set a custom width and height for the graph
-            # Set a custom width and height for the graph and add axis titles
+                # Set a custom width and height for the graph
                 fig.update_layout(
                     xaxis_title="Stock Price at Expiry",
                     yaxis_title="Net Payoff",
@@ -331,12 +328,14 @@ def process_all_inputs(request):
 
                 fig_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
-                            # Generate and display the summary content
+
+                # Generate and display the summary content
                 summary_content = generate_summary(
                         symbol, current_price, strategy, trade_duration, expiration_date, enriched_option_details
                     )
                 st.markdown(summary_content, unsafe_allow_html=True)
-                # Format the summary content for display
+
+
                 # Format the summary content for display
                 formatted_summary = []
                 for line in summary_content.splitlines():
@@ -364,6 +363,8 @@ def process_all_inputs(request):
 
                 # Generate the Yahoo Finance options page URL for the entered symbol
                 yahoo_finance_url = f"https://finance.yahoo.com/quote/{symbol}/options"
+
+
                 return JsonResponse({
                     'expiration_dates': expiration_dates,
                     'current_price': current_price,
@@ -373,16 +374,16 @@ def process_all_inputs(request):
                     'max_gain': max_gain,
                     'max_loss': max_loss,
                     'breakeven_output': breakeven_output,
-                    'fig_json': fig_json,  # Added this line
-                    'formatted_summary': formatted_summary,  # Added this line
-                    'yahoo_finance_url': yahoo_finance_url,  # Added this line
+                    'fig_json': fig_json,  
+                    'formatted_summary': formatted_summary, 
+                    'yahoo_finance_url': yahoo_finance_url,  
                     'symbol': symbol,
             
-                    'shares': shares,  # Added this line
-                    'share_cost': share_cost,  # Added this line
-                    'selected_strike': selected_strike,  # Added this line
-                    'selected_premium': selected_premium,  # Added this line
-                    'selected_quantity': selected_quantity,  # Added this line
+                    'shares': shares,  
+                    'share_cost': share_cost,  
+                    'selected_strike': selected_strike,  
+                    'selected_premium': selected_premium,  
+                    'selected_quantity': selected_quantity,  
                 })
                
                 
