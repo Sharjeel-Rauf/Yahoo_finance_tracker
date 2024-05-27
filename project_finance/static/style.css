@@ -105,6 +105,7 @@ body {
 
 input[type='text'],
 input[type='number'],
+input[type='password'],
 select {
   width: 80%; /* Increase width to 80% */
   height: 40px; /* Increase height */
@@ -120,6 +121,7 @@ select {
 
 input[type='text']:focus,
 input[type='number']:focus,
+input[type='password']:focus,
 select:focus {
   border-color: red; /* Highlight border in red when focused */
 }
@@ -174,7 +176,12 @@ select {
 }
 
 
-
+.container-fluid {
+  position: absolute;
+  top: 20px; /* Margin from the top */
+  width: 100%;
+  z-index: 1000; /* Ensure it appears on top of other elements */
+}
 /* ######################################### */
 
 .main-content {
@@ -254,6 +261,8 @@ select {
   background-color: black;
   color: white;
 }
+
+/* dropdown menu */
 .dropdown-menu {
   right: 0;
   left: auto;

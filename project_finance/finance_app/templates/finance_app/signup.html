@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Sign up | {% endblock %}
+{% block title %}Sign up{% endblock %}
 
 {% block content %}
 <style>
@@ -99,4 +99,16 @@
 
     <button type="submit" class="form-button">Submit</button>
 </form>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+   <!-- Bootstrap JS -->
+   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    $(document).ready(function(){
+        $('#userMenuButton').dropdown();
+    });
+</script>
 {% endblock %}

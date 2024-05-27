@@ -26,6 +26,9 @@ import json
 
 import plotly
 
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url="login")
 def front_page_view(request):
     context = {}
     context['page_title'] = 'Comprehensive Options Strategy Analyzer'
