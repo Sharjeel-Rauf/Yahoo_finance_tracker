@@ -276,7 +276,10 @@ def process_all_inputs(request):
                         total_payoff += payoff * quantity
                     return total_payoff
 
-
+                if selected_premium != default_premium:
+                    selected_premium = default_premium
+                else:   
+                    selected_premium = selected_premium
                 price_range = np.linspace(0.5 * current_price, 1.5 * current_price, 400)
                 payoffs = calculate_payoff(price_range, enriched_option_details)
 

@@ -51,7 +51,13 @@
                 <div id="payoffDiagram" class="container" style="display: none;"></div>
             </div>
 
-        </div>      
+        </div>
+        
+        <!-- display the data link -->
+
+        <div id="yahooFinanceLinkContainer" style="margin-top: 232px; display: none; color: white;">
+        </div>
+
     </div>
 </div>
 
@@ -283,10 +289,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Function to update Yahoo Finance link
-    function updateYahooFinanceLink(url, symbol) {
+       // Function to update Yahoo Finance link
+       function updateYahooFinanceLink(url, symbol) {
         console.log('Updating Yahoo Finance Link...');
         var linkContainer = document.getElementById('yahooFinanceLinkContainer');
         linkContainer.innerHTML = `View the source data for ${symbol} on <a href="${url}" target="_blank">Yahoo Finance</a>`;
+        linkContainer.style.display = 'block'; // Make the link container visible
         console.log('Yahoo Finance Link Updated');
     }
 
@@ -337,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 html += `<label>Number of Shares</label>
                          <input type="number" min="1" max="1000" value="${shares}" id="shares_${index}" class="option-input" /><br>
                          <label>Average Share Cost</label>
-                         <input type="number" min="0.01" max="${multipliedCurrentPrice}" value="${share_cost}" step="0.01" id="share_cost_${index}" class="option-input" />`;
+                         <input type="number" min="0.01" max="${multipliedCurrentPrice}" value="${current_price}" step="0.01" id="share_cost_${index}" class="option-input" />`;
             } else {
                 html += `<label>${leg[1]}</label>
                          <select id="Strike_${index}" class="option-input">`;
@@ -419,6 +427,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // Event listeners for trade duration and expiration date changes
     tradeDurationSelect.addEventListener('change', fetchExpirationDates);
     expiryDateSelect.addEventListener('change', fetchOptionsData);
+
+// Event listener for Enter key press on ticker symbol input
+tickerInput.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        // Fetch data based on the new symbol
+        fetchSymbolAndSendToBackend();
+    }
+});
+
+    // Function to fetch symbol and send to the backend through AJAX
+function fetchSymbolAndSendToBackend() {
+    var symbol = tickerInput.value;
+    var tradeDuration = tradeDurationSelect.value;
+    var expirationDate = null;
+    var strategy = strategySelect.value;
+
+    // Call the fetchAllInputs function with the symbol and other parameters
+    fetchAllInputs(symbol, tradeDuration, expirationDate, strategy, updateExpirationDates);
+}
 
     // Initial fetch of expiration dates
     fetchExpirationDates();
