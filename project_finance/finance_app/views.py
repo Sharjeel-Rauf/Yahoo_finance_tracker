@@ -44,6 +44,8 @@ def front_page_view(request):
     # Fetch real-time data
     try:
         current_price = ticker.history(period='1d')['Close'].iloc[-1]
+        current_price = round(current_price, 2)
+
         st.sidebar.write(f"Current price of {symbol}: ${current_price:.2f}")
     except IndexError:
         st.sidebar.error("Failed to retrieve stock data. Check the ticker symbol and try again.")

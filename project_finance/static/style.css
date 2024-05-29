@@ -107,7 +107,7 @@ input[type='text'],
 input[type='number'],
 input[type='password'],
 select {
-  width: 80%; /* Increase width to 80% */
+  width: 100%; /* Increase width to 80% */
   height: 40px; /* Increase height */
   background-color: black; /* Set background color to black */
   color: white; /* Set text color to white */
