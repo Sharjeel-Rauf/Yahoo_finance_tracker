@@ -172,7 +172,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (response.current_price) {
                     var formattedPrice = parseFloat(response.current_price).toFixed(2);
-                    document.getElementById('resultsSection').innerHTML = `Current price of ${symbol}: $${formattedPrice}`;
+                    var resultsSection = document.getElementById('resultsSection');
+                    resultsSection.innerHTML = `Current price of ${symbol}: $${formattedPrice}`;
+                    resultsSection.style.color = 'white';
                 }
 
                 // Update tables and option legs based on response data
@@ -271,10 +273,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             },
             error: function (error) {
-                // Handle AJAX error
-                console.log('Error fetching data:', error);
-                document.getElementById('resultsSection').innerHTML = 'Error fetching data';
-            }
+    // Handle AJAX error
+    console.log('Error fetching data:', error);
+    var resultsSection = document.getElementById('resultsSection');
+    resultsSection.innerHTML = 'Failed to retrieve stock data. Check the ticker symbol and try again.';
+    if (error) {
+        resultsSection.style.color = 'red'; // Change text color to red if there is an error
+    }
+}
         });
     }
 
