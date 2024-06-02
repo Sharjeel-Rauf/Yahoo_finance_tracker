@@ -131,7 +131,7 @@ def front_page_view(request):
         else:
             enriched_option_details.append(detail)
 
-    ########################################
+
 
 
  
